@@ -1,8 +1,8 @@
 {
-  "name": "정치·시사·경제 — 일반 계정 게시물 6개",
+  "name": "정치·시사·경제 — 일반 계정 게시물 17개",
   "collected_at": "2026-11-22",
   "how_collected": "인스타그램 #경제뉴스 #시사 #정치 태그에서 정부·언론사가 아닌 개인·소규모 매거진 계정 게시물 중 확인 가능한 사실 주장이 있는 것",
-  "note": "expected는 2026-11-22에 네이버 뉴스로 직접 대조한 결과. key_claim_contains는 핵심 주장 문장에 들어 있는 말.",
+  "note": "expected는 2026-11-22에 네이버 뉴스로 직접 대조한 결과. key_claim_contains는 핵심 주장 문장에 들어 있는 말. expected: confirmed(확인됨이어야 함), false(근거와 다름이어야 함), misleading·not_confirmed(확인됨이 나오면 안 됨), confirmed_outdated(확인됨 + 최신 정보 안내).",
   "posts": [
     {
       "url": "https://www.instagram.com/p/DbITE7tD1en/",
@@ -51,6 +51,94 @@
       "expected": "confirmed_outdated",
       "summary": "젠슨 황 불륜 인정 — 일치. 다만 지금은 사임해 '전 CEO', 100조는 언론 추정치",
       "real_articles": ["부산일보 2026-11-21", "YTN 2026-11-21"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DdAazQBoxQE/",
+      "topic": "경제",
+      "key_claim_contains": "1,334.7원",
+      "expected": "confirmed",
+      "summary": "9월 7일 원/달러 환율 장중 1,334.7원, 1년 11개월 만에 최저 — 기사와 일치",
+      "real_articles": ["SBS Biz 2026-09-07", "경향신문 2026-09-07"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DeBBtE8uo3_/",
+      "topic": "경제",
+      "key_claim_contains": "3.3%에서 2.2%로",
+      "expected": "confirmed",
+      "summary": "프리랜서 원천징수율 3.3%→2.2% — 정부안·국회 잠정 합의와 일치 (법 통과 후 내년 적용)",
+      "real_articles": ["파이낸셜뉴스 2026-10-01", "매일경제 2026-10-01", "세정일보 2026-11-19"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DgC69pYsdDt/",
+      "topic": "경제",
+      "key_claim_contains": "563조",
+      "expected": "confirmed",
+      "summary": "올해 하반기 가계 주식 손실 약 563조(추정) — 씨티 분석 인용 기사와 일치",
+      "real_articles": ["더팩트 2026-11-20", "서울경제 2026-11-20"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DbVAcEVT735/",
+      "topic": "정치",
+      "key_claim_contains": "탄핵 청원 57만",
+      "expected": "confirmed",
+      "summary": "이재명 대통령 탄핵 국민동의청원 57만 명 이상 동의로 마감 — 기사와 일치",
+      "real_articles": ["대구일보 2026-07-26", "브레이크뉴스 2026-08-06"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DdJYr3jhLsz/",
+      "topic": "정치",
+      "key_claim_contains": "1심에서 무죄",
+      "expected": "confirmed",
+      "summary": "'이종섭 호주 도피' 윤석열 전 대통령 1심 무죄 — 기사와 일치 (9월 11일 선고, 항소심 진행 중)",
+      "real_articles": ["머니투데이 2026-11-16", "조선일보 2026-11-18"]
+    },
+    {
+      "url": "https://www.instagram.com/p/Df1JYQjAheJ/",
+      "topic": "정치",
+      "key_claim_contains": "국무회의",
+      "expected": "confirmed",
+      "summary": "'조작기소 특검법' 공포안 17일 국무회의 통과, 최장 200일·최대 309명 — 기사와 일치",
+      "real_articles": ["연합뉴스 2026-11-17", "MBN 2026-11-17"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DdVNEFkyEeu/",
+      "topic": "정치",
+      "key_claim_contains": "항소심",
+      "expected": "confirmed",
+      "summary": "윤석열 '위증 혐의' 1심에 이어 2심도 무죄 — 기사와 일치 (26일 대법원 선고 예정)",
+      "real_articles": ["YTN 2026-11-22"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DcsjPRSPXzl/",
+      "topic": "정치",
+      "key_claim_contains": "38.9%",
+      "expected": "confirmed",
+      "summary": "조원씨앤아이 조사 이 대통령 긍정 38.9%·부정 57.9%, 취임 후 첫 30%대 — 기사와 일치 (8월 조사)",
+      "real_articles": ["뉴스1 2026-08-26", "시사저널 2026-08-26"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DdD0sxjBdQ2/",
+      "topic": "시사",
+      "key_claim_contains": "2만4794명",
+      "expected": "confirmed",
+      "summary": "'중국인 무비자 폐지' 청원 8일 오전 기준 2만4794명 동의 — 기사와 일치",
+      "real_articles": ["중앙일보 2026-09-07", "아주경제 2026-09-08"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DdS_Px4Tz3z/",
+      "topic": "정치",
+      "key_claim_contains": "3만명을 넘어서자",
+      "expected": "confirmed",
+      "summary": "추미애 경기도지사 사퇴 청원 3만775명에서 조기 종료 — 기사와 일치",
+      "real_articles": ["파이낸셜뉴스 2026-09-15", "뉴스웍스 2026-09-18"]
+    },
+    {
+      "url": "https://www.instagram.com/p/Dda2yW3Oz_C/",
+      "topic": "정치",
+      "key_claim_contains": "여러 번 해봤다면",
+      "expected": "confirmed",
+      "summary": "윤석열 \"계엄을 여러 번 해봤다면 더 완벽하고 꼼꼼하게 했을 텐데\" 법정 발언 — 기사와 일치 (발언 인용)",
+      "real_articles": ["경향신문 2026-09-17", "경향신문 2026-10-22"]
     }
   ]
 }
