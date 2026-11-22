@@ -102,7 +102,7 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
           {data.false_disclosure && (
             <div className="notice notice-error">
               <strong>이 게시글은 거짓</strong>
-              <p>{r.method === "manual" ? "붙여넣은 글" : "캡션"}에 이 게시글의 내용이 거짓이라고 명시돼 있어요. 기사 검색 없이 이 문구를 근거로 표시했어요.</p>
+              <p>{r.method === "manual" ? "붙여넣은 글" : "캡션"}에 이 게시글의 내용이 사실이 아니라는 설명이 있어요. 기사 검색 없이 이 문구를 근거로 표시했어요.</p>
               <blockquote>{data.false_disclosure}</blockquote>
             </div>
           )}
