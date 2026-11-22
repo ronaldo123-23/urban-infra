@@ -111,6 +111,14 @@ export const OFFICIAL_SOURCES: { names: string[]; label: string; pages: string[]
   },
 ];
 
+/**
+ * 행사·프로모션 이름 → 공식 안내 페이지. 게시물이 이 행사를 말하면 페이지를 직접 읽어 대조한다.
+ * (PR #14에서 partner가 evidence.ts에 직접 넣었던 도미노피자 사례를 목록으로 옮김)
+ */
+export const OFFICIAL_EVENT_PAGES: { event: string; label: string; url: string }[] = [
+  { event: "1434 피자어택", label: "도미노피자 공식 안내 · 1434 피자어택", url: "https://web.dominos.co.kr/bbs/newsView?idx=3269" },
+];
+
 export function expand(word: string): string[] {
   const w = word.toLowerCase();
   return [w, ...(SYNONYMS[word] ?? SYNONYMS[w] ?? [])];

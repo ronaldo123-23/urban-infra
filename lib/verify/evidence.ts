@@ -6,7 +6,7 @@
 
 import { kosisConfigured, searchKosis } from "./kosis";
 import { fetchPageText } from "./fetchPage";
-import { OFFICIAL_SOURCES, TRUSTED_DOMAIN_RE, englishTerms } from "./lexicon";
+import { OFFICIAL_EVENT_PAGES, OFFICIAL_SOURCES, TRUSTED_DOMAIN_RE, englishTerms } from "./lexicon";
 import { naverConfigured, searchNews, searchWeb, type NewsItem } from "./naver";
 import { scoreRelevance } from "./relevance";
 import { searchPapers } from "./scholar";
@@ -129,7 +129,9 @@ async function webCandidates(words: string[]): Promise<Candidate[]> {
     .map((it) => ({ kind: "web", title: it.title, url: it.url, publisher: hostOf(it.url), date: null, snippet: it.snippet, duplicates: 1, factcheck: false }));
 }
 
-const eventName = /(?:[“‘"'「]([^”’"'」\n]{3,50})[”’"'」]|(\d{4}\s*피자\s*어택))\s*(?:프로모션|행사|이벤트|을\s*통해|을\s*진행)/u;
+// 행사 이름: 따옴표로 감싼 이름, 또는 따옴표 없이 "숫자+이름+어택/데이/위크/페스타/세일" (예: 1434 피자어택, 1111 빼빼로데이)
+const eventName =
+  /(?:[“‘"'「]([^”’"'」\n]{3,50})[”’"'」]|(\d{2,4}\s*[가-힣A-Za-z]{1,8}\s*(?:어택|데이|위크|페스타|페스티벌|세일)))\s*(?:프로모션|행사|이벤트|을\s*통해|을\s*진행|를\s*통해|를\s*진행)/u;
 const eventDetail = /(?:이번\s*행사|행사\s*기간|할인\s*(?:기간|혜택|적용|조건)|방문\s*포장|할인(?:된|됩니다)|프로모션|이벤트)/;
 
 export function eventOf(claim: string, caption: string): string | undefined {
@@ -193,12 +195,14 @@ export async function gatherEvidence(
   let newsSearched = false;
   const candidates: Candidate[] = [...officialCandidates(req.claim)];
 
-  if (req.event && containsEvent(req.event, "1434 피자어택")) {
-    candidates.push({
-      kind: "official", title: "도미노피자 공식 안내 · 1434 피자어택",
-      url: "https://web.dominos.co.kr/bbs/newsView?idx=3269",
-      publisher: "web.dominos.co.kr", date: null, snippet: "", duplicates: 1, factcheck: false, official: true,
-    });
+  // 행사 이름이 공식 안내 목록(lexicon.ts의 OFFICIAL_EVENT_PAGES)에 있으면 그 공식 페이지를 직접 읽는다
+  if (req.event) {
+    for (const e of OFFICIAL_EVENT_PAGES.filter((x) => containsEvent(req.event!, x.event))) {
+      candidates.push({
+        kind: "official", title: e.label, url: e.url,
+        publisher: new URL(e.url).hostname.replace(/^www\./, ""), date: null, snippet: "", duplicates: 1, factcheck: false, official: true,
+      });
+    }
   }
   const jobs: Promise<void>[] = [];
   if (naverConfigured()) {

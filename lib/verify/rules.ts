@@ -74,8 +74,12 @@ function debunkQuote(slots: ClaimSlots, s: Source, text: string | undefined): st
 export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[], texts: Map<string, string>): RuleJudgement {
   // 1) 팩트체크 기사가 반박
   const words = keywordsOf(claim, 6).filter((w) => !/^\d/.test(w));
+  // 팩트체크 반박으로 인정하는 경우:
+  // ① 본문을 읽었고(직접 근거), 본문에 주장 핵심어 2개 + 반박 표현이 같은 문장에 있음 (PR #14, partner)
+  // ② 본문을 못 읽었어도 기사 "제목"에 팩트체크 표시와 반박 표현이 둘 다 있음 (예: "…팩트체크 해보니 사실과 달라")
+  const titleDebunk = (s: Source) => FACTCHECK_RE.test(s.title) && DEBUNK_RE.test(s.title);
   const debunks = sources
-    .filter((s) => s.kind === "news" && s.full_text_read && s.relevance.grade === "direct")
+    .filter((s) => s.kind === "news" && ((s.full_text_read && s.relevance.grade === "direct") || titleDebunk(s)))
     .map((s) => {
       const text = `${s.title} ${s.snippet}`;
       // 요약에 반박 표현이 없어도, 본문을 읽었으면 본문에서 주장 핵심어와 반박 표현이 같이 있는 문장을 찾는다
@@ -86,7 +90,7 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
         splitSentencesLoose(full).some(
           (x) => x.length <= 600 && DEBUNK_RE.test(x) && slots.topics.filter((t) => hasTopic(x, t)).length >= 2,
         );
-      return { s, text, debunk: debunkInBody, isFc: FACTCHECK_RE.test(text) || FACTCHECK_RE.test(full.slice(0, 3000)), title: overlap(words, s.title).matched, ...overlap(words, text) };
+      return { s, text, debunk: debunkInBody || titleDebunk(s), isFc: FACTCHECK_RE.test(text) || FACTCHECK_RE.test(full.slice(0, 3000)), title: overlap(words, s.title).matched, ...overlap(words, text) };
     })
     .filter((x) => x.isFc && x.debunk && x.title >= MIN_TITLE_MATCHED && x.ratio >= MIN_OVERLAP)
     .sort((a, b) => b.title - a.title || b.ratio - a.ratio);
@@ -121,21 +125,17 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
     // 발언 인용 주장("…"이라고 설명했다)은 따옴표 안 내용이 원문 문장에 거의 다 있어야 한다. 제목 한 줄로는 안 됨
     if (quoted && (titleLine || !quoteCovered(quoted, m.sentence))) continue;
     if (opposite(claim, m.sentence)) continue;
+    // 게시물은 "18% 더 높다"(상대 변화율처럼 읽힘)인데 원문은 "52% 대 34%, 18% 차이"(%포인트)인 경우:
+    // 수치 자체는 원문과 같으므로 "근거와 다름"이 아니라 "확인됨 + 표현 주의"로 안내한다 (2026-11-23 geonhee 결정)
     const relativeIncrease = slots.numbers.some((n) => n.unit === "%") &&
       /(?:%|퍼센트)\s*(?:더\s*(?:높|낮|많|적)|증가|감소|상승|하락)/.test(claim);
-    if (m.derived && relativeIncrease && trusted(s) && s.relevance.grade === "direct" && m.topicHits.length >= 3) {
-      return {
-        verdict: "false",
-        evidenceIds: [s.id],
-        reason: "게시물의 상대 변화율과 원문의 퍼센트포인트 차이는 뜻이 달라요.",
-        evidence: [{ source_id: s.id, quote: quoteOf(m.sentence), matched: m.topicHits }],
-        comparison: comparisonNotes(claim, slots, m),
-      };
-    }
+    const wordingCaution = Boolean(m.derived && relativeIncrease);
     const allNumbers = slots.numbers.length > 0 && m.numberHits.length === slots.numbers.length;
     const enoughTopics = m.topicHits.length >= Math.max(3, Math.ceil(slots.topics.length * 0.6));
     if (s.relevance.grade === "related" && !(allNumbers && m.topicHits.length >= 3)) continue;
-    if (slots.subjects.length > 0 && !slots.subjects.every((subject) => hasTopic(m.sentence, subject))) continue;
+    // 대상(참가자·청년 등)은 근거 문장이 아니라 그 자료 안에 있으면 된다 (논문 초록은 대상을 다른 문장에서 밝힘)
+    const wholeText = texts.get(s.id)!;
+    if (slots.subjects.length > 0 && !slots.subjects.every((subject) => hasTopic(wholeText, subject))) continue;
     if (slots.times.some((time) => /^\d/.test(time) && !m.sentence.replace(/\s+/g, "").includes(time))) continue;
     const conditions = (claim.match(/본인\s*인증|방문\s*포장|회원\s*가입|포장\s*주문|배달\s*주문|비회원|만\s*\d+\s*세/g) ?? []);
     const normalizedSentence = m.sentence.replace(/\s+/g, "");
@@ -144,7 +144,9 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
       return {
         verdict: "confirmed",
         evidenceIds: [s.id],
-        reason: `${KIND_LABEL[s.kind]}에서 같은 내용을 찾았어요. 자동 대조라 틀릴 수 있으니 근거 문장과 링크를 확인해 보세요.`,
+        reason: wordingCaution
+          ? `${KIND_LABEL[s.kind]}에서 같은 수치를 찾았어요. 다만 원문은 %포인트 차이라서, 게시물의 "○% 더 높다" 표현은 오해를 줄 수 있어요. 아래 비교를 확인해 보세요.`
+          : `${KIND_LABEL[s.kind]}에서 같은 내용을 찾았어요. 자동 대조라 틀릴 수 있으니 근거 문장과 링크를 확인해 보세요.`,
         evidence: [{ source_id: s.id, quote: quoteOf(m.sentence), matched: [...m.topicHits, ...m.numberHits] }],
         comparison: [...comparisonNotes(claim, slots, m), ...roles],
       };
