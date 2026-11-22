@@ -23,6 +23,8 @@ export interface ExtractAttempt {
 export interface ExtractResponse {
   result: ExtractionResult;
   attempts: ExtractAttempt[];
+  /** 게시물 자체가 전달한 정보의 허위를 명시한 원문 문장 */
+  false_disclosure?: string;
   /** true면 화면에서 "캡션을 복사해서 붙여넣어 주세요" 입력칸을 띄운다 */
   needs_manual: boolean;
   post_type: "post" | "reel" | null;

@@ -5,12 +5,19 @@
 
 import { NextResponse } from "next/server";
 import { extractFromManual, extractFromUrl } from "@/lib/extract";
+import { findFalseDisclosure } from "@/lib/extract/selfDisclosure";
+import type { ExtractResponse } from "@/lib/extract/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_URL = 500;
 const MAX_CAPTION = 5000; // 인스타 캡션 최대 2,200자 + 여유
+
+function extractionResponse(data: ExtractResponse) {
+  const falseDisclosure = findFalseDisclosure(data.result.caption_raw);
+  return NextResponse.json(falseDisclosure ? { ...data, false_disclosure: falseDisclosure } : data);
+}
 
 export async function POST(req: Request) {
   let body: { url?: unknown; manual_caption?: unknown };
@@ -30,8 +37,8 @@ export async function POST(req: Request) {
     if (!caption || caption.length > MAX_CAPTION) {
       return NextResponse.json({ error: `캡션은 1~${MAX_CAPTION}자로 입력해 주세요` }, { status: 400 });
     }
-    return NextResponse.json(extractFromManual(url, caption));
+    return extractionResponse(extractFromManual(url, caption));
   }
 
-  return NextResponse.json(await extractFromUrl(url));
+  return extractionResponse(await extractFromUrl(url));
 }
