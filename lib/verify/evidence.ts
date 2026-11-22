@@ -51,13 +51,27 @@ export async function gatherEvidence(
 
   if (naverConfigured()) {
     try {
-      // 팩트체크 기사 우선 + 일반 보도 (사실 확인용)
+      // 팩트체크 기사 우선 + 일반 보도 (사실 확인용).
+      // 검색어가 길면 네이버 정확도 검색이 엉뚱한 기사를 주므로 핵심어 3~4개만 쓴다.
+      const words = req.keywords.split(/\s+/).filter(Boolean);
       const [fc, plain] = await Promise.all([
-        searchNews(`팩트체크 ${req.keywords}`, 10),
-        searchNews(req.keywords, 10),
+        searchNews(`팩트체크 ${words.slice(0, 3).join(" ")}`, 10),
+        searchNews(words.slice(0, 4).join(" "), 10),
       ]);
       const fcUrls = new Set(fc.map((x) => x.url));
-      for (const { item, duplicates } of groupNews([...fc, ...plain]).slice(0, 8)) {
+      // 관련 없는 기사 걸러내기: 숫자·날짜가 아닌 핵심어가 2개 이상(그런 핵심어가 1개면 1개) 나오는 기사만 남긴다
+      // (의미 있는 핵심어가 1개뿐이면 그 단어가 제목에 있어야 한다)
+      const contentWords = words.filter((w) => !/^\d/.test(w));
+      const relevant = [...fc, ...plain].filter((it) => {
+        if (contentWords.length === 0) return false;
+        if (contentWords.length === 1) return it.title.includes(contentWords[0]);
+        // 제목에 1개 이상 + 제목·요약에 2개 이상
+        return (
+          contentWords.some((w) => it.title.includes(w)) &&
+          contentWords.filter((w) => `${it.title} ${it.snippet}`.includes(w)).length >= 2
+        );
+      });
+      for (const { item, duplicates } of groupNews(relevant).slice(0, 8)) {
         sources.push({ id: nextId(), kind: "news", ...item, duplicates, factcheck: fcUrls.has(item.url) });
       }
     } catch (e) {

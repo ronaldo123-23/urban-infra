@@ -16,11 +16,17 @@ const PARTICLES = [
   "으로부터", "에서부터", "이라고", "이라는", "에서는", "으로는", "까지", "부터", "에서", "에게", "으로", "이라",
   "처럼", "보다", "라고", "라는", "하고", "이나", "은", "는", "이", "가", "을", "를", "에", "의", "도", "로", "와", "과", "만",
 ];
-const ENDINGS = /(했습니다|합니다|됩니다|입니다|했다|한다|된다|이다|였다|이었다|하는|했던|하며|하고|해서|되어|됐다|된|할|한)$/;
-const STOP = new Set(["그리고", "하지만", "그러나", "이번", "지금", "정말", "진짜", "너무", "모두", "우리", "여러분", "오늘", "이제", "바로", "통해", "대한", "위해", "있는", "없는", "있다", "없다", "것으로", "것이", "등을"]);
+// 긴 어미부터 (전해 들은 말투 "~한다고/~한대요" 포함)
+const ENDINGS =
+  /(한답니다|된답니다|했답니다|한다고요|된다고요|한다고|된다고|했다고|이라고요|이래요|한대요|된대요|했대요|한대|된대|했대|했습니다|합니다|됩니다|입니다|했다|한다|된다|이다|였다|이었다|하는|했던|하며|하고|해서|되어|됐다|다고|된|할|한)$/;
+const STOP = new Set([
+  "그리고", "하지만", "그러나", "이번", "지금", "정말", "진짜", "너무", "모두", "우리", "여러분", "오늘", "이제", "바로",
+  "통해", "대한", "위해", "있는", "없는", "있다", "없다", "것으로", "것이", "등을",
+  "합니다", "한다", "했다", "된다", "있습니다", "없습니다", "같습니다", "말했다", "밝혔다", "전했다", "알려졌다",
+]);
 
 function stripWord(w: string): string {
-  let s = w.replace(/[^\p{L}\p{N}%~.-]/gu, "");
+  let s = w.replace(/[^\p{L}\p{N}%~.-]/gu, "").replace(/^[.~-]+|[.~-]+$/g, ""); // 소수점·범위(14~34)는 남김
   s = s.replace(ENDINGS, "");
   for (const p of PARTICLES) {
     if (s.length > p.length && s.endsWith(p)) {
@@ -36,14 +42,16 @@ function stripWord(w: string): string {
 
 /** 검색 핵심어: 조사·어미를 떼고 의미 있는 단어 최대 5개 */
 export function keywordsOf(sentence: string, max = 5): string[] {
-  const out: string[] = [];
+  const all: string[] = [];
   for (const raw of sentence.split(/\s+/)) {
     const w = stripWord(raw);
-    if (w.length < 2 || STOP.has(w) || out.includes(w)) continue;
-    out.push(w);
-    if (out.length >= max) break;
+    if (w.length < 2 || STOP.has(w) || all.includes(w)) continue;
+    all.push(w);
   }
-  return out;
+  // 날짜·숫자보다 의미 있는 단어를 먼저 (검색과 관련성 판단에 더 중요함), 숫자는 뒤에 붙인다
+  const words = all.filter((w) => !/^\d/.test(w));
+  const numbers = all.filter((w) => /^\d/.test(w));
+  return [...words.slice(0, max - Math.min(1, numbers.length)), ...numbers].slice(0, max);
 }
 
 export function splitIntoSentences(text: string): string[] {

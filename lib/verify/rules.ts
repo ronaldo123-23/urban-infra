@@ -12,8 +12,10 @@ const DEBUNK_RE =
 // 팩트체크 기사임을 나타내는 표현 (검색어로 찾았더라도 실제 팩트체크 기사인지 한 번 더 본다)
 const FACTCHECK_RE = /(팩트\s*체크|팩트체크|사실\s*확인|사실은|따져\s*보니|검증|진위)/;
 
-const MIN_OVERLAP = 0.5; // 주장 핵심어의 절반 이상이 기사에 나와야 같은 주장으로 본다
-const MIN_MATCHED = 2;
+// 같은 주장을 다룬 기사로 보는 기준 (틀린 "거짓" 판정을 막으려고 엄격하게):
+// 숫자·날짜를 뺀 주장 핵심어가 기사 "제목"에 2개 이상 있고, 제목+요약에는 절반 이상 있어야 한다.
+const MIN_TITLE_MATCHED = 2;
+const MIN_OVERLAP = 0.5;
 
 export interface RuleJudgement {
   verdict: Exclude<Verdict, "not_target">;
@@ -28,21 +30,21 @@ function overlap(claimWords: string[], text: string): { ratio: number; matched: 
 }
 
 export function judgeByRules(claim: string, sources: Source[]): RuleJudgement {
-  const words = keywordsOf(claim, 6);
+  const words = keywordsOf(claim, 6).filter((w) => !/^\d/.test(w));
   const debunks = sources
     .filter((s) => s.kind === "news")
     .map((s) => {
       const text = `${s.title} ${s.snippet}`;
-      return { s, text, ...overlap(words, text) };
+      return { s, text, title: overlap(words, s.title).matched, ...overlap(words, text) };
     })
     .filter(
       (x) =>
         FACTCHECK_RE.test(x.text) &&
         DEBUNK_RE.test(x.text) &&
-        x.ratio >= MIN_OVERLAP &&
-        x.matched >= MIN_MATCHED,
+        x.title >= MIN_TITLE_MATCHED &&
+        x.ratio >= MIN_OVERLAP,
     )
-    .sort((a, b) => b.ratio - a.ratio);
+    .sort((a, b) => b.title - a.title || b.ratio - a.ratio);
 
   if (debunks.length > 0) {
     const top = debunks.slice(0, 2);
