@@ -7,8 +7,8 @@
 ## In Progress
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
-- [geonhee] 연관성 기준 문서 (`docs/IMPROVEMENT_PLAN.md` 3-1절), `geonhee/relevance-criteria`
-- [geonhee] 개선 PR B: 원문 찾기와 대조 + 연관성 기준 코드 적용, `geonhee/source-compare` — 연관성 기준 문서 PR 위에 쌓음
+- [geonhee] 연관성 기준 문서 (`docs/IMPROVEMENT_PLAN.md` 3-1절), `geonhee/relevance-criteria`, https://github.com/sten5891-code/urban-infra/pull/7
+- [geonhee] 개선 PR B: 원문 찾기와 대조 + 연관성 기준 코드 적용, `geonhee/source-compare`, https://github.com/sten5891-code/urban-infra/pull/8 — PR #7 위에 쌓음 (#7 먼저 머지). 로컬 확인 끝, 배포본 확인은 머지 후
 
 ## Done
 - [geonhee] 초기 구성 파일 추가 (AGENTS.md, CLAUDE.md, PROGRESS.md, README.md), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/1
@@ -45,8 +45,13 @@
 - 2026-11-22: 검증 API에 `offset`(요청), `total_checkable`·`next_offset`·`skipped`·`hold_reason`(응답)을 추가함. Claude 경로는 묶음 나누기 없이 최대 5개 그대로.
 - 2026-11-22: 게시물 주장 ↔ 기사 연관성 기준을 정함 (`docs/IMPROVEMENT_PLAN.md` 3-1절: 주제어·대상 관문 2개, 100점 점수, 직접 근거/관련 자료/무관 3등급).
 - 2026-11-22: 판정 이름 "거짓으로 밝혀짐" → "근거와 다름"으로 바꾸고, 원문은 공개 페이지만 읽고 막히면 보류하기로 함 (geonhee가 PR B 진행을 지시하며 기본값으로 정함, 바꾸고 싶으면 PR B 리뷰에서).
+- 2026-11-22: PR B — 새 외부 서비스: Europe PMC(해외 논문 검색, 무료, 키 없음), 네이버 웹문서 검색(같은 API HUB 키). 새 npm 의존성은 없음.
+- 2026-11-22: PR B — 공식 안내 페이지는 목록(`lib/verify/lexicon.ts`의 `OFFICIAL_SOURCES`)으로 관리함. 네이버 웹문서 검색으로는 해외 공식 페이지(예: 런던 마라톤 의료 안내)가 안 잡혀서. 지금은 런던 마라톤 1곳.
+- 2026-11-22: PR B — 원문은 서버에서 공개 페이지만 읽고(자기 이름을 밝힌 User-Agent, 7초·3MB 제한), 화면에는 근거 문장 1개만 인용함 (저작권).
+- 2026-11-22: PR B — "작년·올해·내년" 같은 상대 시점 주장은 올해 나온 자료로만 확인·반박함 (2024년 기사로 2026년의 "작년 출생아 23만 명"을 확인하던 문제 발견).
 
 ## Open Questions
+- 공식 안내 페이지 목록과 같은 말 사전을 누가 어떻게 늘릴까? (새 게시물에서 놓친 말이 나올 때마다 `lib/verify/lexicon.ts`에 추가)
 - 파트너의 브랜치 이름 접두어는? (`partner/` 대신 쓸 이름)
 - 규칙 판정은 "확인됨"을 못 내고 "거짓"도 팩트체크 기사 제목·요약에만 의존함. 나중에 무료 AI나 다른 방법을 쓸까?
 - 네이버 API HUB 유료 전환 후 단가와 카드 등록 필요 여부는 공식 문서에서 확인 못 함. 유료가 되면 계속 쓸까?

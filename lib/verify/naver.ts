@@ -21,12 +21,13 @@ interface NaverEndpoint {
   headers: Record<string, string>;
 }
 
-function endpoint(): NaverEndpoint | null {
+/** kind: news=뉴스 검색, webkr=웹문서 검색 */
+function endpoint(kind: "news" | "webkr" = "news"): NaverEndpoint | null {
   const hubId = process.env.NAVER_HUB_KEY_ID?.trim();
   const hubKey = process.env.NAVER_HUB_KEY?.trim();
   if (hubId && hubKey) {
     return {
-      url: "https://naverapihub.apigw.ntruss.com/search/v1/news",
+      url: `https://naverapihub.apigw.ntruss.com/search/v1/${kind}`,
       headers: { "X-NCP-APIGW-API-KEY-ID": hubId, "X-NCP-APIGW-API-KEY": hubKey },
     };
   }
@@ -34,11 +35,35 @@ function endpoint(): NaverEndpoint | null {
   const secret = process.env.NAVER_CLIENT_SECRET?.trim();
   if (id && secret) {
     return {
-      url: "https://openapi.naver.com/v1/search/news.json",
+      url: `https://openapi.naver.com/v1/search/${kind}.json`,
       headers: { "X-Naver-Client-Id": id, "X-Naver-Client-Secret": secret },
     };
   }
   return null;
+}
+
+export interface WebItem {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+/** 네이버 웹문서 검색 — 공식 기관·학술 페이지 후보 찾기용 (호출하는 쪽에서 믿을 만한 도메인만 남긴다) */
+export async function searchWeb(query: string, display = 10): Promise<WebItem[]> {
+  const ep = endpoint("webkr");
+  if (!ep) throw new Error("네이버 검색 키 미설정");
+  const url = new URL(ep.url);
+  url.searchParams.set("query", query);
+  url.searchParams.set("display", String(display));
+  url.searchParams.set("start", "1");
+  const res = await fetch(url, {
+    headers: { ...ep.headers, Accept: "application/json" },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`네이버 웹문서 검색 HTTP ${res.status}`);
+  const raw = (await res.json()) as { items?: { title: string; link: string; description: string }[] };
+  return (raw.items ?? []).map((it) => ({ title: stripTags(it.title), url: it.link, snippet: stripTags(it.description) }));
 }
 
 export function naverConfigured(): boolean {

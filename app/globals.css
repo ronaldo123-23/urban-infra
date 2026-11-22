@@ -147,3 +147,16 @@ html, body {
 .sources { margin: var(--space-1) 0 0; padding-left: var(--space-4); font-size: var(--text-sm); }
 .source { overflow-wrap: anywhere; margin-bottom: var(--space-1); }
 .source a { color: var(--color-primary); }
+.match { display: block; font-size: var(--text-sm); color: var(--color-muted); }
+
+.comparison { margin: 0; padding-left: var(--space-4); font-size: var(--text-sm); }
+.quote {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-border);
+  background: var(--color-bg);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+.quote p { margin: 0 0 var(--space-1); }
