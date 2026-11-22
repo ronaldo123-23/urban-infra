@@ -41,13 +41,20 @@ export function groupNews(items: NewsItem[]): { item: NewsItem; duplicates: numb
   return groups.map(({ item, duplicates }) => ({ item, duplicates }));
 }
 
+export interface Evidence {
+  sources: Source[];
+  /** 뉴스 검색을 실제로 했는지 (키 없음·오류면 false) */
+  newsSearched: boolean;
+}
+
 /** 출처 번호를 매기며 주장별 근거를 모은다. warnings에 실패 이유를 쌓는다 */
 export async function gatherEvidence(
   req: EvidenceRequest,
   nextId: () => string,
   warnings: string[],
-): Promise<Source[]> {
+): Promise<Evidence> {
   const sources: Source[] = [];
+  let newsSearched = false;
 
   if (naverConfigured()) {
     try {
@@ -58,6 +65,7 @@ export async function gatherEvidence(
         searchNews(`팩트체크 ${words.slice(0, 3).join(" ")}`, 10),
         searchNews(words.slice(0, 4).join(" "), 10),
       ]);
+      newsSearched = true;
       const fcUrls = new Set(fc.map((x) => x.url));
       // 관련 없는 기사 걸러내기: 숫자·날짜가 아닌 핵심어가 2개 이상(그런 핵심어가 1개면 1개) 나오는 기사만 남긴다
       // (의미 있는 핵심어가 1개뿐이면 그 단어가 제목에 있어야 한다)
@@ -99,5 +107,5 @@ export async function gatherEvidence(
     }
   }
 
-  return sources;
+  return { sources, newsSearched };
 }

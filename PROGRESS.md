@@ -7,6 +7,8 @@
 ## In Progress
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
+- [geonhee] 개선 PR A: 주장 고르기와 보류 이유 (`docs/IMPROVEMENT_PLAN.md` 3절), `geonhee/claim-selection` — PR #5 위에 쌓은 브랜치
+- [geonhee] 개선 PR B: 원문 찾기와 대조 — PR A 머지 후 시작
 
 ## Done
 - [geonhee] 초기 구성 파일 추가 (AGENTS.md, CLAUDE.md, PROGRESS.md, README.md), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/1
@@ -37,7 +39,13 @@
 - 2026-11-22: Vercel 배포는 geonhee 계정(Hobby, 무료)으로 함. `main`에 머지하면 자동으로 다시 배포됨. 환경변수(네이버 키)는 Vercel 프로젝트 Settings → Environment Variables에 있음.
 - 2026-11-22: 공유할 주소는 고정 주소 `urban-infra-jet.vercel.app`만 씀. 배포마다 바뀌는 주소(`urban-infra-xxxx-geonhee.vercel.app`)는 Vercel 기본 보호 때문에 팀원 로그인이 필요함. `urban-infra.vercel.app`은 다른 사람의 사이트이니 쓰지 않음.
 
+- 2026-11-22: 파트너(Codex) 계획서와 geonhee(Claude) 분석을 합쳐 `docs/IMPROVEMENT_PLAN.md`로 정리함. "여러 언론사 보도 = 보도로 확인됨" 단계는 SPEC 7-3과 충돌해 하지 않기로 함 (원문 대조 방식으로 대신).
+- 2026-11-22: 주장 고르기를 "앞에서 5개"에서 "캡션 전체를 우선순위(수치 +3, 출처 +3, 날짜 +1, '~할 수 있습니다' -1)로 정렬해 5개씩"으로 바꿈. 마라톤 게시물에서 48시간·18% 주장이 1·2순위로 들어옴.
+- 2026-11-22: 검증 API에 `offset`(요청), `total_checkable`·`next_offset`·`skipped`·`hold_reason`(응답)을 추가함. Claude 경로는 묶음 나누기 없이 최대 5개 그대로.
+
 ## Open Questions
+- 판정 이름 "거짓으로 밝혀짐"을 Codex 계획서처럼 "근거와 다름"으로 바꿀까? (PR B에서 정하기)
+- 원문 가져오기는 공개 페이지만, 막히면 보류로 할까? (PR B)
 - 파트너의 브랜치 이름 접두어는? (`partner/` 대신 쓸 이름)
 - 규칙 판정은 "확인됨"을 못 내고 "거짓"도 팩트체크 기사 제목·요약에만 의존함. 나중에 무료 AI나 다른 방법을 쓸까?
 - 네이버 API HUB 유료 전환 후 단가와 카드 등록 필요 여부는 공식 문서에서 확인 못 함. 유료가 되면 계속 쓸까?
