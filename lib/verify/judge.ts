@@ -1,5 +1,5 @@
 // 판정 (docs/SPEC.md 7-3, 7-4). Claude는 우리가 실제로 검색해서 준 출처 번호만 인용할 수 있다.
-// 코드에서도 다시 검사한다: 근거 링크가 없으면 "확인됨"/"거짓으로 밝혀짐"을 낼 수 없다.
+// 코드에서도 다시 검사한다: 근거 링크가 없으면 "확인됨"/"근거와 다름"을 낼 수 없다.
 
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";

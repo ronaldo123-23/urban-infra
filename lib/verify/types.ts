@@ -1,14 +1,24 @@
 // 판정 단계 데이터 형식 (docs/SPEC.md 7-3, 7-4).
 
-/** confirmed=확인됨, false=거짓으로 밝혀짐, unverified=아직 확인 안 됨, not_target=판단 대상 아님 */
+/**
+ * confirmed=확인됨, false=근거와 다름 (2026-11-22 "거짓으로 밝혀짐"에서 이름 변경, 코드 값은 그대로),
+ * unverified=아직 확인 안 됨, not_target=판단 대상 아님
+ */
 export type Verdict = "confirmed" | "false" | "unverified" | "not_target";
 
 /** statistic=통계 조작·뻥튀기, mixed=사실을 섞은 거짓, fabricated=완전한 거짓·조작 의심 */
 export type ClaimType = "statistic" | "mixed" | "fabricated";
 
+export interface SourceRelevance {
+  score: number; // 0~100 (docs/IMPROVEMENT_PLAN.md 3-1절)
+  grade: "direct" | "related"; // 무관은 결과에 넣지 않는다
+  matched: string[]; // "일치: …"로 보여줄 항목
+}
+
 export interface Source {
   id: string; // 근거 번호 (E1, E2 …) — 판정 AI는 이 번호만 인용할 수 있다
-  kind: "news" | "kosis";
+  /** news=뉴스, paper=논문(Europe PMC), official=공식 안내 페이지, web=믿을 만한 도메인의 웹문서, kosis=통계 */
+  kind: "news" | "paper" | "official" | "web" | "kosis";
   title: string;
   url: string;
   publisher: string | null;
@@ -18,6 +28,16 @@ export interface Source {
   duplicates: number;
   /** "팩트체크 + 핵심어" 검색으로 찾은 기사인지 */
   factcheck: boolean;
+  relevance: SourceRelevance;
+  /** 원문(본문·초록)을 읽어서 대조했는지 */
+  full_text_read: boolean;
+}
+
+/** 원문에서 찾은 근거 문장 (한두 문장만 인용) */
+export interface EvidenceQuote {
+  source_id: string;
+  quote: string;
+  matched: string[];
 }
 
 export interface ClaimResult {
@@ -31,6 +51,10 @@ export interface ClaimResult {
   related: Source[];
   /** verdict가 unverified일 때 보류 이유. 그 외에는 null */
   hold_reason: HoldReason | null;
+  /** 원문에서 찾은 근거 문장 */
+  evidence: EvidenceQuote[];
+  /** 비교 설명 (예: "원문은 52% 대 34%로 18%포인트 차이예요", 불확실성) */
+  comparison: string[];
 }
 
 /**

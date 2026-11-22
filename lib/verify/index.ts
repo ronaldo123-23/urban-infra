@@ -9,7 +9,8 @@ import { judgeClaims } from "./judge";
 import { kosisConfigured } from "./kosis";
 import { naverConfigured } from "./naver";
 import { judgeByRules } from "./rules";
-import type { ClaimResult, HoldReason, SkippedSentence, Verdict, VerifyResponse } from "./types";
+import { slotsOf } from "./slots";
+import type { ClaimResult, EvidenceQuote, HoldReason, SkippedSentence, Verdict, VerifyResponse } from "./types";
 
 export * from "./types";
 
@@ -17,6 +18,8 @@ interface Judgement {
   verdict: Exclude<Verdict, "not_target">;
   evidenceIds: string[];
   reason: string;
+  evidence?: EvidenceQuote[];
+  comparison?: string[];
 }
 
 const HOLD_MESSAGE: Record<HoldReason, string> = {
@@ -80,11 +83,16 @@ export async function verifyCaption(caption: string, offset = 0): Promise<Verify
   let n = 0;
   const nextId = () => `E${++n}`;
   const evidence = new Map<ExtractedClaim, Evidence>();
+  const slots = new Map(batch.map((c) => [c, slotsOf(c.text)]));
   await Promise.all(
     batch.map(async (c) => {
       evidence.set(
         c,
-        await gatherEvidence({ claim: c.text, type: c.type, keywords: c.keywords, statQuery: c.statQuery }, nextId, warnings),
+        await gatherEvidence(
+          { claim: c.text, type: c.type, keywords: c.keywords, statQuery: c.statQuery, slots: slots.get(c)! },
+          nextId,
+          warnings,
+        ),
       );
     }),
   );
@@ -104,7 +112,10 @@ export async function verifyCaption(caption: string, offset = 0): Promise<Verify
     }
   }
   if (judged.size === 0) {
-    for (const c of batch) judged.set(c, judgeByRules(c.text, evidence.get(c)?.sources ?? []));
+    for (const c of batch) {
+      const ev = evidence.get(c);
+      judged.set(c, judgeByRules(c.text, slots.get(c)!, ev?.sources ?? [], ev?.texts ?? new Map()));
+    }
   }
 
   // 4) 결과 조립 + 최종 검사: 근거 링크 없는 확인됨/거짓은 허용하지 않는다
@@ -124,6 +135,8 @@ export async function verifyCaption(caption: string, offset = 0): Promise<Verify
       sources: all.filter((s) => used.has(s.id)),
       related: all.filter((s) => !used.has(s.id)),
       hold_reason: hold,
+      evidence: verdict === j.verdict ? (j.evidence ?? []).filter((e) => used.has(e.source_id)) : [],
+      comparison: verdict === j.verdict ? (j.comparison ?? []) : [],
     };
   });
 
@@ -138,6 +151,8 @@ export async function verifyCaption(caption: string, offset = 0): Promise<Verify
         sources: [],
         related: [],
         hold_reason: null,
+        evidence: [],
+        comparison: [],
       }))
     : [];
 
