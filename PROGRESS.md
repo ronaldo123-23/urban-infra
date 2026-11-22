@@ -5,7 +5,7 @@
 ## In Progress
 
 ## Done
-- [geonhee] Prepared the first 「잠깐!」 source import and Korean/English evidence search, 2026-11-22, PR for branch geonhee/bilingual-evidence-search.
+- [geonhee] Prepared the first 「잠깐!」 source import and Korean/English evidence search, 2026-11-22, [PR #1](https://github.com/ronaldo123-23/urban-infra/pull/1).
 
 ## Decisions
 - 2026-11-22: Use MyMemory for Korean-to-English search query translation. The UI discloses that search text is sent to MyMemory and Naver.
