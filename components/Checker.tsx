@@ -99,6 +99,14 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
         <section className="card" aria-live="polite">
           <h2 className="section-title">읽은 글</h2>
 
+          {data.false_disclosure && (
+            <div className="notice notice-error">
+              <strong>이 게시글은 거짓</strong>
+              <p>{r.method === "manual" ? "붙여넣은 글" : "캡션"}에 이 게시글의 내용이 거짓이라고 명시돼 있어요. 기사 검색 없이 이 문구를 근거로 표시했어요.</p>
+              <blockquote>{data.false_disclosure}</blockquote>
+            </div>
+          )}
+
           {r.caption_clean !== null ? (
             <>
               <dl className="meta">
@@ -160,7 +168,7 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
         </form>
       )}
 
-      {r?.caption_clean ? <VerdictPanel key={r.fetched_at} caption={r.caption_clean} /> : null}
+      {r?.caption_clean && !data?.false_disclosure ? <VerdictPanel key={r.fetched_at} caption={r.caption_clean} /> : null}
     </div>
   );
 }

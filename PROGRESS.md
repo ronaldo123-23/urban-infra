@@ -10,6 +10,7 @@
 - [geonhee] 개선 PR C: 판정 정확도 (검색어·숫자 단위·문장 나누기·잘못된 확인 막기·직책 변경 안내) + 시험 세트, `geonhee/verify-accuracy`, https://github.com/sten5891-code/urban-infra/pull/9
 
 ## Done
+- [geonhee] 게시물 자체의 허위 명시를 캡션 추출 단계에서 표시, 2026-11-22, geonhee/self-disclosed-false PR 예정.
 - [geonhee] 초기 구성 파일 추가 (AGENTS.md, CLAUDE.md, PROGRESS.md, README.md), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/1
 - [geonhee] 1단계 글 읽기 프로토타입 (링크 입력 → oEmbed/메타 태그/직접 붙여넣기, PWA 공유 대상), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/3
 - [geonhee] 2단계 판정 기능 (규칙으로 주장 추출·판정, 네이버 뉴스 팩트체크 검색, KOSIS 연동 코드, Claude 경로는 꺼 둠), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/4
