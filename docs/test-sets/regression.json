@@ -1,0 +1,56 @@
+{
+  "name": "회귀 시험 — 이전에 맞힌 사례 (마라톤·팩트체크된 소문·시점 규칙)",
+  "collected_at": "2026-11-22",
+  "how_collected": "PR #4~#9를 만들며 시험한 사례. url이 없는 항목은 인스타 게시물이 아니라 caption(글)을 바로 넣어 시험한다.",
+  "note": "판정 규칙을 바꿨을 때 예전에 맞히던 것이 틀리지 않는지 보는 용도. expected 뜻은 politics-economy.json과 같음.",
+  "posts": [
+    {
+      "url": "https://www.instagram.com/p/DftueIimQQx/",
+      "topic": "건강",
+      "key_claim_contains": "48시간",
+      "expected": "confirmed",
+      "summary": "런던 마라톤 공식 의료 안내: 대회 전 48시간·대회 중·대회 후 48시간 소염제 알약 피하기",
+      "real_articles": ["TCS London Marathon Medical advice"]
+    },
+    {
+      "url": "https://www.instagram.com/p/DftueIimQQx/",
+      "topic": "건강",
+      "key_claim_contains": "18%",
+      "expected": "confirmed",
+      "summary": "울트라마라톤 이부프로펜 연구: 52% 대 34%, 18%포인트 차이 (95% CI -4%~41%)",
+      "real_articles": ["Emerg Med J 2017 무작위 대조 시험 (Europe PMC)"]
+    },
+    {
+      "caption": "동물카페가 내년에 전부 폐업한다고 합니다. 너무 슬퍼요 ㅠㅠ",
+      "topic": "시사 (소문)",
+      "key_claim_contains": "동물카페",
+      "expected": "false",
+      "summary": "단비뉴스 팩트체크 '대체로 사실 아님'",
+      "real_articles": ["단비뉴스 2026-11-22"]
+    },
+    {
+      "caption": "정부가 해외주식을 강제로 매각하게 한다고 합니다.",
+      "topic": "경제 (소문)",
+      "key_claim_contains": "해외주식",
+      "expected": "false",
+      "summary": "뉴스토마토 팩트체크 — 가짜뉴스",
+      "real_articles": ["뉴스토마토 2026-01-22"]
+    },
+    {
+      "caption": "스타벅스가 박근혜 전두환을 엮은 이벤트를 했다고 하네요.",
+      "topic": "시사 (소문)",
+      "key_claim_contains": "스타벅스",
+      "expected": "false",
+      "summary": "한경매거진 팩트체크 '사실과 달라'",
+      "real_articles": ["한경매거진&북"]
+    },
+    {
+      "caption": "작년 출생아 수는 23만 명으로 역대 최저를 기록했다.",
+      "topic": "통계 (시점)",
+      "key_claim_contains": "출생아",
+      "expected": "not_confirmed",
+      "summary": "2026년 기준 '작년'은 2025년. 23만 명 기사는 2024년 기사(2023년 통계)이거나 '23만명 돌파…증가율 최고'(반대 내용)라 확인되면 안 됨",
+      "real_articles": []
+    }
+  ]
+}

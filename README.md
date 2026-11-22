@@ -46,10 +46,13 @@ npm run start      # 빌드한 결과 실행
 
 판정 시험 세트 (실제 인스타 게시물 + 기대 결과): [docs/test-sets/](docs/test-sets/)
 ```bash
-node scripts/verify-sample.mjs                         # 배포본으로
+node scripts/verify-sample.mjs                         # 배포본으로, docs/test-sets/ 의 모든 세트
 node scripts/verify-sample.mjs http://localhost:3000   # 로컬 서버로 (npm run build && npm run start)
+node scripts/verify-sample.mjs <주소> docs/test-sets/regression.json   # 세트 하나만
 ```
-각 게시물의 핵심 주장 판정이 기대값과 맞는지 ✅/❌와 "핵심 주장 맞힘: N / 6"을 보여준다.
+각 항목의 핵심 주장 판정이 기대값과 맞는지 ✅/❌와 "핵심 주장 맞힘: N / 전체", 기대값 종류별 성적을 보여준다.
+- `politics-economy.json`: 인스타 일반 계정의 정치·시사·경제 게시물 17개
+- `regression.json`: 예전에 맞힌 사례 6개 (마라톤, 팩트체크된 소문, 시점 규칙) — 규칙을 바꿀 때 이게 깨지면 안 됨
 
 ## 협업
 작업 규칙은 [AGENTS.md](AGENTS.md), 진행 상황은 [PROGRESS.md](PROGRESS.md)를 본다.
