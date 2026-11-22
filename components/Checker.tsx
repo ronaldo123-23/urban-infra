@@ -66,6 +66,7 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
   }
 
   const r = data?.result;
+  const canPaste = Boolean(data?.post_type && r && !r.caption_clean?.trim());
 
   return (
     <div className="stack">
@@ -97,12 +98,13 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
 
       {data && r && (
         <section className="card" aria-live="polite">
-          <h2 className="section-title">읽은 글</h2>
+          <h2 className="section-title">{r.caption_clean ? (r.method === "manual" ? "붙여넣은 글을 읽었어요" : "캡션을 읽었어요") : "읽을 캡션을 확보하지 못했어요"}</h2>
+          <p className="hint">이미지·영상 속 글자와 음성은 읽지 않아요.</p>
 
           {data.false_disclosure && (
             <div className="notice notice-error">
-              <strong>이 게시글은 거짓</strong>
-              <p>{r.method === "manual" ? "붙여넣은 글" : "캡션"}에 이 게시글의 내용이 사실이 아니라는 설명이 있어요. 기사 검색 없이 이 문구를 근거로 표시했어요.</p>
+              <strong>캡션에서 지어낸 내용이라고 밝혔어요</strong>
+              <p>{r.method === "manual" ? "붙여넣은 글" : "캡션"}에 게시물 자체의 내용이 사실이 아니라는 설명이 있어요. 아래는 캡션에 나온 문구예요.</p>
               <blockquote>{data.false_disclosure}</blockquote>
             </div>
           )}
@@ -150,9 +152,9 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
         </section>
       )}
 
-      {data?.needs_manual && (
+      {canPaste && (
         <form className="card" onSubmit={onManualSubmit}>
-          <h2 className="section-title">글을 자동으로 읽지 못했어요</h2>
+          <h2 className="section-title">캡션 직접 입력</h2>
           <p className="hint">인스타 앱에서 게시물 글(캡션)을 길게 눌러 복사한 뒤 여기에 붙여넣어 주세요.</p>
           <textarea
             className="input textarea"

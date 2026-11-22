@@ -49,13 +49,14 @@ function unitPattern(unit: string): string {
   return `(?:${aliases.map(escapeRe).join("|")})`;
 }
 
-/** 같은 숫자·단위가 있는지. %는 두 비율의 차이(%포인트)로 나오는 경우도 인정 */
+/** 같은 숫자·단위가 있는지. %는 두 비율의 차이(%포인트)는 명시된 경우만 인정 */
 export function numberIn(rawText: string, n: NumberSlot): { hit: boolean; derived: string | null } {
   const text = rawText.replace(/(\d),(?=\d{3}(?!\d))/g, "$1"); // "6,515조" → "6515조"
   const v = String(n.value).replace(".", "[.,]");
-  const exact = new RegExp(`(^|[^\\d.,])${v}\\s*${unitPattern(n.unit)}(?![a-z])`, "i");
+  const percentBoundary = n.unit === "%" ? "(?!\\s*(?:포인트|points?)|p\\b)" : "";
+  const exact = new RegExp(`(^|[^\\d.,])${v}\\s*${unitPattern(n.unit)}${percentBoundary}(?![a-z])`, "i");
   if (exact.test(text)) return { hit: true, derived: null };
-  if (n.unit === "%" || n.unit === "%p" || n.unit === "포인트") {
+  if (n.unit === "%p") {
     for (const sentence of splitSentencesLoose(text)) {
       const pcts = extractNumbers(sentence).filter((x) => x.unit === "%").map((x) => x.value);
       for (let i = 0; i < pcts.length; i++)

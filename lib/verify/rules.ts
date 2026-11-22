@@ -2,7 +2,7 @@
 // 순서:
 // 1) "근거와 다름" (팩트체크): 팩트체크 기사의 제목·요약에 반박 표현이 있고, 주장 핵심어(숫자·날짜 제외)가 기사 제목에 2개 이상
 // 2) "확인됨": 연관성 "직접 근거"인 자료의 원문에서 같은 내용을 말하는 문장을 찾았을 때
-//    - 수치가 있는 주장: 주장의 수치가 그 문장에 모두 있어야 함 (%포인트 차이로 맞는 경우 포함, 설명을 붙임)
+//    - 수치가 있는 주장: 주장의 수치가 그 문장에 모두 있어야 함 (상대 변화율과 퍼센트포인트는 구분)
 //    - 수치가 없는 주장: 공식 안내·논문·공식 웹문서에서만, 주제어 대부분이 한 문장에 있어야 함
 //    - 반박 표현이나 물음표가 있는 문장(소문을 인용한 문장)은 근거로 쓰지 않음
 // 3) "근거와 다름" (수치): 공식 안내·논문의 같은 주제 문장에 같은 단위의 다른 수치만 있을 때
@@ -75,7 +75,7 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
   // 1) 팩트체크 기사가 반박
   const words = keywordsOf(claim, 6).filter((w) => !/^\d/.test(w));
   const debunks = sources
-    .filter((s) => s.kind === "news")
+    .filter((s) => s.kind === "news" && s.full_text_read && s.relevance.grade === "direct")
     .map((s) => {
       const text = `${s.title} ${s.snippet}`;
       // 요약에 반박 표현이 없어도, 본문을 읽었으면 본문에서 주장 핵심어와 반박 표현이 같이 있는 문장을 찾는다
@@ -86,7 +86,7 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
         splitSentencesLoose(full).some(
           (x) => x.length <= 600 && DEBUNK_RE.test(x) && slots.topics.filter((t) => hasTopic(x, t)).length >= 2,
         );
-      return { s, text, debunk: DEBUNK_RE.test(text) || debunkInBody, isFc: FACTCHECK_RE.test(text) || FACTCHECK_RE.test(full.slice(0, 3000)), title: overlap(words, s.title).matched, ...overlap(words, text) };
+      return { s, text, debunk: debunkInBody, isFc: FACTCHECK_RE.test(text) || FACTCHECK_RE.test(full.slice(0, 3000)), title: overlap(words, s.title).matched, ...overlap(words, text) };
     })
     .filter((x) => x.isFc && x.debunk && x.title >= MIN_TITLE_MATCHED && x.ratio >= MIN_OVERLAP)
     .sort((a, b) => b.title - a.title || b.ratio - a.ratio);
@@ -107,7 +107,7 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
   const direct = sources.filter(
     (s) =>
       (s.relevance.grade === "direct" || (slots.numbers.length > 0 && s.relevance.grade === "related")) &&
-      texts.has(s.id) &&
+      s.full_text_read && texts.has(s.id) &&
       !s.factcheck &&
       sameTimeFrame(claim, s),
   );
@@ -120,10 +120,26 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
     const titleLine = isTitleLine(m.sentence, s.title);
     // 발언 인용 주장("…"이라고 설명했다)은 따옴표 안 내용이 원문 문장에 거의 다 있어야 한다. 제목 한 줄로는 안 됨
     if (quoted && (titleLine || !quoteCovered(quoted, m.sentence))) continue;
+    if (opposite(claim, m.sentence)) continue;
+    const relativeIncrease = slots.numbers.some((n) => n.unit === "%") &&
+      /(?:%|퍼센트)\s*(?:더\s*(?:높|낮|많|적)|증가|감소|상승|하락)/.test(claim);
+    if (m.derived && relativeIncrease && trusted(s) && s.relevance.grade === "direct" && m.topicHits.length >= 3) {
+      return {
+        verdict: "false",
+        evidenceIds: [s.id],
+        reason: "게시물의 상대 변화율과 원문의 퍼센트포인트 차이는 뜻이 달라요.",
+        evidence: [{ source_id: s.id, quote: quoteOf(m.sentence), matched: m.topicHits }],
+        comparison: comparisonNotes(claim, slots, m),
+      };
+    }
     const allNumbers = slots.numbers.length > 0 && m.numberHits.length === slots.numbers.length;
     const enoughTopics = m.topicHits.length >= Math.max(3, Math.ceil(slots.topics.length * 0.6));
     if (s.relevance.grade === "related" && !(allNumbers && m.topicHits.length >= 3)) continue;
-    if (opposite(claim, m.sentence)) continue; // 숫자는 같아도 "최저 ↔ 최고"처럼 반대 말이면 확인 아님
+    if (slots.subjects.length > 0 && !slots.subjects.every((subject) => hasTopic(m.sentence, subject))) continue;
+    if (slots.times.some((time) => /^\d/.test(time) && !m.sentence.replace(/\s+/g, "").includes(time))) continue;
+    const conditions = (claim.match(/본인\s*인증|방문\s*포장|회원\s*가입|포장\s*주문|배달\s*주문|비회원|만\s*\d+\s*세/g) ?? []);
+    const normalizedSentence = m.sentence.replace(/\s+/g, "");
+    if (conditions.some((condition) => !normalizedSentence.includes(condition.replace(/\s+/g, "")))) continue;
     if (allNumbers || (slots.numbers.length === 0 && trusted(s) && enoughTopics && !titleLine)) {
       return {
         verdict: "confirmed",

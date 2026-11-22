@@ -49,11 +49,15 @@ export function bestSentence(slots: ClaimSlots, text: string): SentenceMatch | n
         derived ??= r.derived ?? pairDifference(sentence, n.value);
       }
     }
+    const pct = slots.numbers.find((n) => n.unit === "%" || n.unit === "%p");
+    if (pct && /difference|차이|대비|versus|placebo/i.test(sentence)) {
+      derived ??= pairDifference(sentence, pct.value);
+    }
     const claimUnits = new Set(slots.numbers.map((n) => n.unit));
     const otherNumbers = extractNumbers(sentence)
       .filter((x) => claimUnits.has(x.unit) && !slots.numbers.some((n) => n.value === x.value))
       .map((x) => x.raw);
-    const score = topicHits.length + numberHits.length * 3;
+    const score = topicHits.length + numberHits.length * 3 + (derived ? 3 : 0);
     if (score > bestScore) {
       bestScore = score;
       best = { sentence, topicHits, numberHits, otherNumbers, derived };
@@ -65,22 +69,22 @@ export function bestSentence(slots: ClaimSlots, text: string): SentenceMatch | n
 /** 비교 설명: %포인트 차이, 신뢰구간(불확실성), 전·중·후 조건 */
 export function comparisonNotes(claim: string, slots: ClaimSlots, m: SentenceMatch): string[] {
   const notes: string[] = [];
-  const pct = slots.numbers.find((n) => n.unit === "%");
+  const pct = slots.numbers.find((n) => n.unit === "%" || n.unit === "%p");
   if (m.derived && pct) {
     const [a, b] = m.derived.split(" 대 ").map((x) => parseFloat(x));
     const rel = b > 0 ? Math.round((a / b - 1) * 100) : null;
     notes.push(
       `원문 수치는 ${m.derived}로, 차이는 ${pct.value}%포인트예요.` +
-        (rel !== null ? ` 게시물의 "${pct.value}% 더 높다"는 비율이 아니라 %포인트 차이예요 (비율로 따지면 약 ${rel}% 높음).` : ""),
+        (rel !== null && pct.unit === "%" ? ` 게시물의 "${pct.value}% 더 높다"는 비율이 아니라 %포인트 차이예요 (비율로 따지면 약 ${rel}% 높음).` : ""),
     );
   }
   const ci =
-    /95\s*%\s*(?:CI|confidence interval|신뢰\s*구간)[\s:,]*(-?\d+(?:\.\d+)?)\s*%?\s*(?:to|–|—|~|-)\s*(-?\d+(?:\.\d+)?)\s*%?/i.exec(m.sentence);
+    /95\s*%\s*(?:CI|confidence interval|신뢰\s*구간)[\s:,]*([−-]?\d+(?:\.\d+)?)\s*%?\s*(?:to|–|—|~|-)\s*([−-]?\d+(?:\.\d+)?)\s*%?/i.exec(m.sentence);
   if (ci) {
-    const lo = parseFloat(ci[1]);
-    const hi = parseFloat(ci[2]);
+    const lo = parseFloat(ci[1].replace("−", "-"));
+    const hi = parseFloat(ci[2].replace("−", "-"));
     notes.push(
-      lo < 0 && hi > 0
+      lo <= 0 && hi >= 0
         ? `다만 95% 신뢰구간이 ${lo}%~${hi}%로 0을 포함해서, 통계적으로 확실한 차이라고 보기는 어려워요 (연구 1건 결과).`
         : `95% 신뢰구간은 ${lo}%~${hi}%예요 (연구 1건 결과).`,
     );

@@ -26,9 +26,9 @@ const SOURCE_BEFORE_TITLE_RE = /([가-힣A-Za-z]{2,})\s*(교수|박사|연구팀
 const ORG_RE = /([가-힣A-Za-z]{2,}(대학교|대학|병원|협회|학회|공단|연구원|위원회|재단|청|처|부))(?=[은는이가의에\s,]|$)/g;
 // 숫자 + 단위. 큰 돈·사람 단위(조·억·만·천)는 뒤에 붙는 "원·명"까지 한 단위로 본다 ("6,515조 원" → 6515 조)
 const NUM_RE =
-  /(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(%p|%|％|퍼센트|포인트|조\s*원|조|억\s*원|억|만\s*원|만\s*명|만|천\s*명|천|원|명|시간|분|일|주|년|배|세|살|km)/g;
+  /(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(%\s*포인트|퍼센트\s*포인트|percentage\s*points?|%p|%|％|퍼센트|포인트|조\s*원|조|억\s*원|억|만\s*원|만\s*명|만|천\s*명|천|원|명|시간|분|일|주|년|배|세|살|km)/gi;
 
-const UNIT_NORMAL: Record<string, string> = { "％": "%", 퍼센트: "%", 살: "세", 조원: "조", 억원: "억", 만원: "만", 만명: "만", 천명: "천" };
+const UNIT_NORMAL: Record<string, string> = { "％": "%", 퍼센트: "%", "%포인트": "%p", 퍼센트포인트: "%p", percentagepoints: "%p", percentagepoint: "%p", 살: "세", 조원: "조", 억원: "억", 만원: "만", 만명: "만", 천명: "천" };
 
 export function extractNumbers(text: string): NumberSlot[] {
   const out: NumberSlot[] = [];
