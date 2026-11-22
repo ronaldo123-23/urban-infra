@@ -24,16 +24,19 @@ const TIME_RE = /(\d{4}년|\d{1,2}월\s*\d{1,2}일|\d{1,2}월|내년|올해|작�
 // 사람 이름 + 직함 ("샤르마 교수") — "의료 책임자"처럼 직함만 있는 경우는 출처 이름으로 보지 않는다
 const SOURCE_BEFORE_TITLE_RE = /([가-힣A-Za-z]{2,})\s*(교수|박사|연구팀|연구진|대변인|장관|청장|위원장)/g;
 const ORG_RE = /([가-힣A-Za-z]{2,}(대학교|대학|병원|협회|학회|공단|연구원|위원회|재단|청|처|부))(?=[은는이가의에\s,]|$)/g;
-const NUM_RE = /(\d+(?:[.,]\d+)?)\s*(%|％|퍼센트|%p|포인트|시간|분|일|주|년|명|배|세|살|km|만\s*명|만)/g;
+// 숫자 + 단위. 큰 돈·사람 단위(조·억·만·천)는 뒤에 붙는 "원·명"까지 한 단위로 본다 ("6,515조 원" → 6515 조)
+const NUM_RE =
+  /(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(%p|%|％|퍼센트|포인트|조\s*원|조|억\s*원|억|만\s*원|만\s*명|만|천\s*명|천|원|명|시간|분|일|주|년|배|세|살|km)/g;
 
-const UNIT_NORMAL: Record<string, string> = { "％": "%", 퍼센트: "%", 살: "세" };
+const UNIT_NORMAL: Record<string, string> = { "％": "%", 퍼센트: "%", 살: "세", 조원: "조", 억원: "억", 만원: "만", 만명: "만", 천명: "천" };
 
 export function extractNumbers(text: string): NumberSlot[] {
   const out: NumberSlot[] = [];
   for (const m of text.matchAll(NUM_RE)) {
-    const unit = UNIT_NORMAL[m[2]] ?? m[2].replace(/\s+/g, "");
+    const u = m[2].replace(/\s+/g, "");
+    const unit = UNIT_NORMAL[u] ?? u;
     const value = Number(m[1].replace(/,/g, ""));
-    if (Number.isFinite(value)) out.push({ value, unit, raw: m[0] });
+    if (Number.isFinite(value)) out.push({ value, unit, raw: `${m[1].replace(/,/g, "")}${unit}` });
   }
   return out;
 }

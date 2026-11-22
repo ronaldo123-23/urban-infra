@@ -49,14 +49,19 @@ const PARTICLES = [
 ];
 // 긴 어미부터 (전해 들은 말투 "~한다고/~한대요" 포함)
 const ENDINGS =
-  /(한답니다|된답니다|했답니다|한다고요|된다고요|한다고|된다고|했다고|이라고요|이래요|한대요|된대요|했대요|한대|된대|했대|했습니다|합니다|됩니다|입니다|습니다|되고|했다|한다|된다|이다|였다|이었다|하는|했던|하며|하고|해서|되어|됐다|다고|된|할|한)$/;
+  /(한답니다|된답니다|했답니다|한다고요|된다고요|한다고|된다고|했다고|이라고요|이래요|한대요|된대요|했대요|한대|된대|했대|했습니다|합니다|됩니다|입니다|습니다|됐으며|했으며|됐다는|했다는|됐고|했고|되고|했다|한다|된다|이다|였다|이었다|하는|했던|하며|하고|해서|되어|됐다|다고|된|할|한)$/;
 const STOP = new Set([
   "그리고", "하지만", "그러나", "그런데", "또한", "특히", "실제로", "이미", "이번", "지금", "정말", "진짜", "너무", "모두",
   "우리", "여러분", "오늘", "이제", "바로", "통해", "대한", "위해", "있는", "없는", "있다", "없다", "것으로", "것이", "등을",
   "합니다", "한다", "했다", "된다", "있습니다", "없습니다", "같습니다", "말했다", "밝혔다", "전했다", "알려졌다",
   "경우", "대상", "그룹", "사례", "결과", "정도", "이상", "이하", "그렇지", "않은", "같은", "어떤", "모든", "가장",
   "실제", "나타났", "이어지", "보고", "진행되며", "추가적인", "통해", "때문", "자체", "하면", "되면", "이면", "있어",
+  "무려", "고작", "공교롭게도", "결국", "고스란히", "도대체", "최근", "관련", "따르", "따르면", "우리나라", "가운데", "전망",
+  "늘린", "늘어난", "기록", "경신", "돌파", "발표된", "자료", "공교롭게", "다시", "나타났다", "더욱", "불과", "하지",
 ]);
+
+// 한 글자지만 핵심인 명사 (조사를 떼고 남으면 핵심어로 쓴다)
+const ONE_CHAR_KEEP = new Set(["금", "빚", "돈", "쌀", "집", "땅", "술", "약", "물", "불"]);
 
 function stripWord(w: string): string {
   let s = w.replace(/[^\p{L}\p{N}%~.-]/gu, "").replace(/^[.~-]+|[.~-]+$/g, ""); // 소수점·범위(14~34)는 남김
@@ -79,9 +84,10 @@ function stripWord(w: string): string {
  */
 export function keywordsOf(sentence: string, max = 5): string[] {
   const all: string[] = [];
-  for (const raw of sentence.split(/\s+/)) {
+  // "살인·강도살인" 처럼 가운뎃점·쉼표로 이어진 단어도 나눈다 (숫자 속 쉼표 "6,515"는 남김)
+  for (const raw of sentence.split(/\s+|[·ㆍ・/()（）[\]「」『』]|,(?!\d{3})/)) {
     const w = stripWord(raw);
-    if (w.length < 2 || STOP.has(w) || all.includes(w)) continue;
+    if ((w.length < 2 && !ONE_CHAR_KEEP.has(w)) || STOP.has(w) || all.includes(w)) continue;
     all.push(w);
   }
   const words = all.filter((w) => !/^\d/.test(w));
@@ -96,11 +102,40 @@ export function keywordsOf(sentence: string, max = 5): string[] {
   return [...ranked, ...numbers].slice(0, max);
 }
 
+// 따옴표·괄호 짝 (여는 기호 → 닫는 기호)
+const PAIRS: Record<string, string> = { "“": "”", "‘": "’", '"': '"', "'": "'", "(": ")", "「": "」", "『": "』", "《": "》", "<": ">" };
+
+/**
+ * 문장 나누기. 따옴표·괄호 안의 마침표·물음표·말줄임표에서는 자르지 않는다
+ * ("도대체 그 많은 돈이 다 어디로 간 거냐", "결국…" 같은 인용이 조각나지 않게).
+ */
 export function splitIntoSentences(text: string): string[] {
-  return text
-    .split(/(?<=[.!?。…])\s+|\n+/)
-    .map((s) => s.replace(/^[\s“"'‘\-•·▶►✔✅📌]+|[\s”"'’]+$/gu, "").trim())
-    .filter((s) => s.length >= 6);
+  const out: string[] = [];
+  for (const line of text.split(/\n+/)) {
+    let buf = "";
+    let open: string | null = null;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      buf += ch;
+      if (open) {
+        if (ch === PAIRS[open]) open = null;
+        continue;
+      }
+      // 영어 따옴표(' ")는 단어 안의 아포스트로피와 헷갈리므로 앞이 공백·문장 시작일 때만 여는 기호로 본다
+      if (ch in PAIRS && (!/['"]/.test(ch) || i === 0 || /\s/.test(line[i - 1]))) {
+        // 닫는 기호가 뒤에 실제로 있을 때만 (짝이 없는 따옴표 때문에 문장 전체가 붙지 않게)
+        if (line.indexOf(PAIRS[ch], i + 1) !== -1) open = ch;
+        continue;
+      }
+      const end = /[.!?。]/.test(ch) || (ch === "…" && line[i + 1] !== "…");
+      if (end && (i + 1 >= line.length || /\s/.test(line[i + 1]))) {
+        out.push(buf);
+        buf = "";
+      }
+    }
+    if (buf.trim()) out.push(buf);
+  }
+  return out.map((s) => s.replace(/^[\s“"'‘\-•·▶►✔✅📌]+|[\s”"'’]+$/gu, "").trim()).filter((s) => s.length >= 6);
 }
 
 /** 검증 우선순위 점수: 수치 > 출처 > 날짜, 짧은 일반 문장은 낮게 */

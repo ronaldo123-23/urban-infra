@@ -78,9 +78,17 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
     .filter((s) => s.kind === "news")
     .map((s) => {
       const text = `${s.title} ${s.snippet}`;
-      return { s, text, title: overlap(words, s.title).matched, ...overlap(words, text) };
+      // 요약에 반박 표현이 없어도, 본문을 읽었으면 본문에서 주장 핵심어와 반박 표현이 같이 있는 문장을 찾는다
+      // (네이버 요약은 검색어에 따라 기사 앞부분만 보여줄 때가 있다)
+      const full = s.full_text_read ? texts.get(s.id) ?? "" : "";
+      const debunkInBody =
+        full !== "" &&
+        splitSentencesLoose(full).some(
+          (x) => x.length <= 600 && DEBUNK_RE.test(x) && slots.topics.filter((t) => hasTopic(x, t)).length >= 2,
+        );
+      return { s, text, debunk: DEBUNK_RE.test(text) || debunkInBody, isFc: FACTCHECK_RE.test(text) || FACTCHECK_RE.test(full.slice(0, 3000)), title: overlap(words, s.title).matched, ...overlap(words, text) };
     })
-    .filter((x) => FACTCHECK_RE.test(x.text) && DEBUNK_RE.test(x.text) && x.title >= MIN_TITLE_MATCHED && x.ratio >= MIN_OVERLAP)
+    .filter((x) => x.isFc && x.debunk && x.title >= MIN_TITLE_MATCHED && x.ratio >= MIN_OVERLAP)
     .sort((a, b) => b.title - a.title || b.ratio - a.ratio);
   if (debunks.length > 0) {
     const top = debunks.slice(0, 2);
@@ -94,29 +102,42 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
   }
 
   // 2) 원문에서 같은 내용 확인
+  const roles = roleNotes(claim, sources, texts);
+  // 직접 근거 자료 + (수치 주장일 때) 관련 자료도 본다. 관련 자료는 한 문장에 수치 전부 + 주제어 2개 이상이 같이 있어야 확인으로 인정
   const direct = sources.filter(
-    (s) => s.relevance.grade === "direct" && texts.has(s.id) && !s.factcheck && sameTimeFrame(claim, s),
+    (s) =>
+      (s.relevance.grade === "direct" || (slots.numbers.length > 0 && s.relevance.grade === "related")) &&
+      texts.has(s.id) &&
+      !s.factcheck &&
+      sameTimeFrame(claim, s),
   );
   const trusted = (s: Source) => s.kind === "official" || s.kind === "paper" || s.kind === "web";
+  const quoted = attributedQuote(claim);
   for (const s of direct) {
     const m = bestSentence(slots, texts.get(s.id)!);
     if (!m || DEBUNK_RE.test(m.sentence) || /[?？]/.test(m.sentence)) continue;
+    if (/\s>\s/.test(m.sentence)) continue; // 웹페이지 메뉴 경로 ("보도자료 > 통일부소식")
+    const titleLine = isTitleLine(m.sentence, s.title);
+    // 발언 인용 주장("…"이라고 설명했다)은 따옴표 안 내용이 원문 문장에 거의 다 있어야 한다. 제목 한 줄로는 안 됨
+    if (quoted && (titleLine || !quoteCovered(quoted, m.sentence))) continue;
     const allNumbers = slots.numbers.length > 0 && m.numberHits.length === slots.numbers.length;
     const enoughTopics = m.topicHits.length >= Math.max(3, Math.ceil(slots.topics.length * 0.6));
-    if (allNumbers || (slots.numbers.length === 0 && trusted(s) && enoughTopics)) {
+    if (s.relevance.grade === "related" && !(allNumbers && m.topicHits.length >= 3)) continue;
+    if (opposite(claim, m.sentence)) continue; // 숫자는 같아도 "최저 ↔ 최고"처럼 반대 말이면 확인 아님
+    if (allNumbers || (slots.numbers.length === 0 && trusted(s) && enoughTopics && !titleLine)) {
       return {
         verdict: "confirmed",
         evidenceIds: [s.id],
         reason: `${KIND_LABEL[s.kind]}에서 같은 내용을 찾았어요. 자동 대조라 틀릴 수 있으니 근거 문장과 링크를 확인해 보세요.`,
         evidence: [{ source_id: s.id, quote: quoteOf(m.sentence), matched: [...m.topicHits, ...m.numberHits] }],
-        comparison: comparisonNotes(claim, slots, m),
+        comparison: [...comparisonNotes(claim, slots, m), ...roles],
       };
     }
   }
 
   // 3) 공식 안내·논문의 수치가 다름
   if (slots.numbers.length > 0) {
-    for (const s of direct.filter(trusted)) {
+    for (const s of direct.filter((x) => trusted(x) && x.relevance.grade === "direct")) {
       const text = texts.get(s.id)!;
       if (slots.numbers.some((n) => numberIn(text, n).hit)) continue; // 다른 문장에 같은 수치가 있으면 보류
       const m = bestSentence(slots, text);
@@ -142,6 +163,68 @@ export function judgeByRules(claim: string, slots: ClaimSlots, sources: Source[]
     evidenceIds: [],
     reason: [hasFactcheck ? "관련 팩트체크 기사가 있어요. 아래 자료에서 직접 읽어 보세요." : "", timeHint].filter(Boolean).join(" "),
     evidence: [],
-    comparison: [],
+    comparison: roles,
   };
+}
+
+// 반대 말 짝: 주장에 한쪽이 있고 원문 문장에 다른 쪽만 있으면 같은 내용이 아니다
+const OPPOSITES: [RegExp, RegExp][] = [
+  [/최저|최소|가장 낮/, /최고|최대|가장 높/],
+  [/증가|늘었|늘어|상승|올랐|인상/, /감소|줄었|줄어|하락|내렸|인하/],
+  [/흑자/, /적자/],
+];
+
+function opposite(claim: string, sentence: string): boolean {
+  return OPPOSITES.some(
+    ([a, b]) => (a.test(claim) && !a.test(sentence) && b.test(sentence)) || (b.test(claim) && !b.test(sentence) && a.test(sentence)),
+  );
+}
+
+/** 발언 인용 주장: 통일부는 "…"이라고 설명했다 → 따옴표 안 내용 */
+function attributedQuote(claim: string): string | null {
+  const m = /[“"‘']([^”"’']{6,})[”"’']\s*(?:이?라고|며|고)?\s*(?:설명|밝|말|주장|강조|전했|덧붙|지적|해명|반박|일축)/.exec(claim);
+  return m ? m[1] : null;
+}
+
+/** 따옴표 안 핵심어가 원문 문장에 모두 있어야 한다 (7개 이상이면 하나까지 빠져도 됨) */
+function quoteCovered(quote: string, sentence: string): boolean {
+  const words = keywordsOf(quote, 8).filter((w) => !/^\d/.test(w));
+  if (words.length === 0) return false;
+  const covered = words.filter((w) => hasTopic(sentence, w)).length;
+  return covered === words.length || (words.length >= 7 && covered >= words.length - 1);
+}
+
+function normalizeLine(s: string): string {
+  return s.replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+/** 원문 문장이 사실상 그 자료의 제목인지 */
+function isTitleLine(sentence: string, title: string): boolean {
+  const a = normalizeLine(sentence);
+  const b = normalizeLine(title);
+  if (a.length < 8 || b.length < 8) return false;
+  return a.includes(b.slice(0, Math.min(b.length, 30))) || b.includes(a.slice(0, Math.min(a.length, 30)));
+}
+
+const ROLE_RE = /(CEO|최고경영자|대표이사|대표|회장|사장|장관|총리|의장|위원장|감독|총재|청장)/g;
+const ROLE_ALIASES: Record<string, string> = { CEO: "(?:CEO|최고경영자)", 최고경영자: "(?:CEO|최고경영자)" };
+
+/**
+ * 직책이 바뀐 경우 안내: 게시물은 "엔비디아 CEO 젠슨 황"인데 최신 기사가 "전 CEO"라고 하면 알려 준다.
+ * (판정을 바꾸지는 않고 비교 설명만 붙인다)
+ */
+function roleNotes(claim: string, sources: Source[], texts: Map<string, string>): string[] {
+  const notes: string[] = [];
+  for (const m of claim.matchAll(ROLE_RE)) {
+    const role = m[1];
+    const before = claim.slice(Math.max(0, m.index! - 3), m.index!);
+    if (/전\s*$/.test(before)) continue; // 게시물도 이미 "전 CEO"
+    // "전 CEO", "전 엔비디아 CEO", "전 엔비디아 최고경영자(CEO)"
+    const re = new RegExp(`(^|[^가-힣])전\\s+(?:[가-힣A-Za-z]{1,12}\\s+){0,2}\\(?${ROLE_ALIASES[role] ?? role}`);
+    const hit = sources.find((s) => re.test(`${s.title} ${s.snippet} ${(texts.get(s.id) ?? "").slice(0, 2000)}`));
+    if (hit && !notes.some((n) => n.includes(role))) {
+      notes.push(`최신 자료(「${hit.title.slice(0, 40)}」 등)에서는 "전 ${role}"로 나와요. 게시물이 쓰인 뒤 직책이 바뀌었을 수 있어요.`);
+    }
+  }
+  return notes;
 }

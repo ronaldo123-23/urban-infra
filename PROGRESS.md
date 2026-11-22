@@ -7,8 +7,7 @@
 ## In Progress
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
-- [geonhee] 연관성 기준 문서 (`docs/IMPROVEMENT_PLAN.md` 3-1절), `geonhee/relevance-criteria`, https://github.com/sten5891-code/urban-infra/pull/7
-- [geonhee] 개선 PR B: 원문 찾기와 대조 + 연관성 기준 코드 적용, `geonhee/source-compare`, https://github.com/sten5891-code/urban-infra/pull/8 — PR #7 위에 쌓음 (#7 먼저 머지). 로컬 확인 끝, 배포본 확인은 머지 후
+- [geonhee] 개선 PR C: 판정 정확도 (검색어·숫자 단위·문장 나누기·잘못된 확인 막기·직책 변경 안내) + 시험 세트, `geonhee/verify-accuracy`
 
 ## Done
 - [geonhee] 초기 구성 파일 추가 (AGENTS.md, CLAUDE.md, PROGRESS.md, README.md), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/1
@@ -16,6 +15,8 @@
 - [geonhee] 2단계 판정 기능 (규칙으로 주장 추출·판정, 네이버 뉴스 팩트체크 검색, KOSIS 연동 코드, Claude 경로는 꺼 둠), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/4
 - [geonhee] Vercel 배포 — 공개 주소 https://urban-infra-jet.vercel.app (로그인 없이 열림). 배포본에서 인스타 글 읽기(메타 태그, 캡션 전체)와 판정(네이버 검색) 동작 확인, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/5
 - [geonhee] 개선 PR A: 주장 우선순위·5개씩 검증·보류 이유 3가지, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/6 (partner가 #5와 함께 머지)
+- [geonhee] 연관성 기준 문서, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/7
+- [geonhee] 개선 PR B: 원문 대조 판정 + 연관성 점수, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/8 — 배포본에서 마라톤 48시간·18% 주장 "확인됨" 확인
 
 ## Decisions
 - 2026-11-22: 저장소 이름은 `urban-infra`(Public)로 정함. GitHub 저장소 이름에 한글을 쓸 수 없어서, 한글 이름 "도시인프라"는 설명과 README에 씀.
@@ -49,8 +50,12 @@
 - 2026-11-22: PR B — 공식 안내 페이지는 목록(`lib/verify/lexicon.ts`의 `OFFICIAL_SOURCES`)으로 관리함. 네이버 웹문서 검색으로는 해외 공식 페이지(예: 런던 마라톤 의료 안내)가 안 잡혀서. 지금은 런던 마라톤 1곳.
 - 2026-11-22: PR B — 원문은 서버에서 공개 페이지만 읽고(자기 이름을 밝힌 User-Agent, 7초·3MB 제한), 화면에는 근거 문장 1개만 인용함 (저작권).
 - 2026-11-22: PR B — "작년·올해·내년" 같은 상대 시점 주장은 올해 나온 자료로만 확인·반박함 (2024년 기사로 2026년의 "작년 출생아 23만 명"을 확인하던 문제 발견).
+- 2026-11-22: PR #7, #8도 geonhee의 직접 지시로 Claude가 머지함.
+- 2026-11-22: 인스타 #경제뉴스·#시사·#정치 태그에서 일반 계정(정부·언론사 아님) 게시물 6개를 시험 세트로 정함 (`docs/test-sets/politics-economy.json`). geonhee가 앱 안 브라우저에서 인스타에 로그인해 주었고, 게시물은 읽기만 함. 기대값은 네이버 뉴스로 직접 대조한 결과.
+- 2026-11-22: PR C 전 배포본 성적 1/6 → PR C 후 6/6 (`node scripts/verify-sample.mjs`). 잘못된 "확인됨" 1건(통일부 발언 인용)도 없어짐.
 
 ## Open Questions
+- 시험 세트를 더 늘릴까? (지금 6개 + 마라톤·소문 3개. 오해를 부르는 틀("[속보]… 결정")은 규칙으로 못 잡음)
 - 공식 안내 페이지 목록과 같은 말 사전을 누가 어떻게 늘릴까? (새 게시물에서 놓친 말이 나올 때마다 `lib/verify/lexicon.ts`에 추가)
 - 파트너의 브랜치 이름 접두어는? (`partner/` 대신 쓸 이름)
 - 규칙 판정은 "확인됨"을 못 내고 "거짓"도 팩트체크 기사 제목·요약에만 의존함. 나중에 무료 AI나 다른 방법을 쓸까?
