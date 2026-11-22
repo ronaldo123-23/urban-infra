@@ -48,8 +48,10 @@ function ClaimCard({ c }: { c: ClaimResult }) {
   return (
     <li className="claim">
       <span className={`badge badge-${c.verdict}`}>{VERDICT_LABEL[c.verdict]}</span>
+      <p className="label-sm">게시물의 주장</p>
       <p className="claim-text">“{c.claim}”</p>
       <p className="claim-reason">{c.reason}</p>
+      {(c.evidence.length > 0 || c.comparison.length > 0) && <p className="label-sm">원문과 비교한 내용</p>}
       {c.comparison.length > 0 && (
         <ul className="comparison">
           {c.comparison.map((n, i) => (
@@ -67,7 +69,7 @@ function ClaimCard({ c }: { c: ClaimResult }) {
       ))}
       {c.sources.length > 0 && (
         <div>
-          <p className="label-sm">근거</p>
+          <p className="label-sm">출처</p>
           <ul className="sources">
             {c.sources.map((s) => (
               <SourceLink key={s.id} s={s} />
@@ -158,9 +160,8 @@ export default function VerdictPanel({ caption }: { caption: string }) {
               검증할 주장 {data.total_checkable}개 중 {checkedCount}개를 확인했어요. 수치·날짜·출처가 있는 주장부터 확인해요.
             </p>
           )}
-          {claims.length === 0 ? (
-            <p className="notice">확인할 만한 주장을 찾지 못했어요.</p>
-          ) : (
+          {data.total_checkable === 0 && <p className="notice">캡션을 읽었지만 검증할 주장을 찾지 못했어요.</p>}
+          {claims.length > 0 && (
             <ul className="claims">
               {claims.map((c, i) => (
                 <ClaimCard key={i} c={c} />

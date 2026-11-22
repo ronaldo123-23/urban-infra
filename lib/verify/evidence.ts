@@ -6,7 +6,7 @@
 
 import { kosisConfigured, searchKosis } from "./kosis";
 import { fetchPageText } from "./fetchPage";
-import { OFFICIAL_SOURCES, TRUSTED_DOMAIN_RE, englishTerms } from "./lexicon";
+import { OFFICIAL_EVENT_PAGES, OFFICIAL_SOURCES, TRUSTED_DOMAIN_RE, englishTerms } from "./lexicon";
 import { naverConfigured, searchNews, searchWeb, type NewsItem } from "./naver";
 import { scoreRelevance } from "./relevance";
 import { searchPapers } from "./scholar";
@@ -19,6 +19,7 @@ export interface EvidenceRequest {
   keywords: string; // 검색 핵심어
   statQuery: string | null; // KOSIS 검색어 (통계 주장일 때)
   slots: ClaimSlots;
+  event?: string;
 }
 
 export interface Evidence {
@@ -128,6 +129,27 @@ async function webCandidates(words: string[]): Promise<Candidate[]> {
     .map((it) => ({ kind: "web", title: it.title, url: it.url, publisher: hostOf(it.url), date: null, snippet: it.snippet, duplicates: 1, factcheck: false }));
 }
 
+// 행사 이름: 따옴표로 감싼 이름, 또는 따옴표 없이 "숫자+이름+어택/데이/위크/페스타/세일" (예: 1434 피자어택, 1111 빼빼로데이)
+const eventName =
+  /(?:[“‘"'「]([^”’"'」\n]{3,50})[”’"'」]|(\d{2,4}\s*[가-힣A-Za-z]{1,8}\s*(?:어택|데이|위크|페스타|페스티벌|세일)))\s*(?:프로모션|행사|이벤트|을\s*통해|을\s*진행|를\s*통해|를\s*진행)/u;
+const eventDetail = /(?:이번\s*행사|행사\s*기간|할인\s*(?:기간|혜택|적용|조건)|방문\s*포장|할인(?:된|됩니다)|프로모션|이벤트)/;
+
+export function eventOf(claim: string, caption: string): string | undefined {
+  const own = eventName.exec(claim);
+  if (own) return own[1] ?? own[2];
+  if (!eventDetail.test(claim)) return undefined;
+  const names = new Set(caption.split(/\n|(?<=[.!?])\s+/).flatMap((line) => {
+    const match = eventName.exec(line);
+    return match ? [match[1] ?? match[2]] : [];
+  }));
+  return names.size === 1 ? [...names][0] : undefined;
+}
+
+function containsEvent(text: string, event: string): boolean {
+  const normalize = (value: string) => value.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  return normalize(text).includes(normalize(event));
+}
+
 function officialCandidates(claim: string): Candidate[] {
   const lower = claim.toLowerCase();
   return OFFICIAL_SOURCES.filter((o) => o.names.some((n) => lower.includes(n))).flatMap((o) =>
@@ -168,10 +190,20 @@ export async function gatherEvidence(
   warnings: string[],
 ): Promise<Evidence> {
   const words = req.keywords.split(/\s+/).filter(Boolean);
+  if (req.event) words.unshift(req.event);
   const texts = new Map<string, string>();
   let newsSearched = false;
   const candidates: Candidate[] = [...officialCandidates(req.claim)];
 
+  // 행사 이름이 공식 안내 목록(lexicon.ts의 OFFICIAL_EVENT_PAGES)에 있으면 그 공식 페이지를 직접 읽는다
+  if (req.event) {
+    for (const e of OFFICIAL_EVENT_PAGES.filter((x) => containsEvent(req.event!, x.event))) {
+      candidates.push({
+        kind: "official", title: e.label, url: e.url,
+        publisher: new URL(e.url).hostname.replace(/^www\./, ""), date: null, snippet: "", duplicates: 1, factcheck: false, official: true,
+      });
+    }
+  }
   const jobs: Promise<void>[] = [];
   if (naverConfigured()) {
     jobs.push(
@@ -201,6 +233,7 @@ export async function gatherEvidence(
 
   // 1차 점수: 제목 + 요약(또는 초록)
   const scored = candidates
+    .filter((c) => !req.event || c.official || containsEvent(`${c.title} ${c.snippet}`, req.event))
     .map((c) => ({ c, r: scoreRelevance(req.claim, req.slots, { title: c.title, text: c.text ?? c.snippet, official: c.official }) }))
     .filter((x) => x.c.official || x.r.grade !== "irrelevant")
     .sort((a, b) => Number(b.c.official ?? false) - Number(a.c.official ?? false) || b.r.score - a.r.score);
@@ -224,9 +257,15 @@ export async function gatherEvidence(
 
   const sources: Source[] = [];
   for (const { c, r } of scored.sort((a, b) => b.r.score - a.r.score)) {
-    if (r.grade === "irrelevant" || sources.length >= MAX_SOURCES) continue;
+    if (sources.length >= MAX_SOURCES) break;
+    if (req.event && !containsEvent(c.text ?? `${c.title} ${c.snippet}`, req.event)) continue;
+    const verifiedEventPage = Boolean(c.official && c.text && req.event && containsEvent(c.text, req.event));
+    if (r.grade === "irrelevant" && !verifiedEventPage) continue;
+    const relevance = r.grade === "irrelevant"
+      ? { score: 40, grade: "related" as const, matched: [req.event!] }
+      : { score: r.score, grade: r.grade, matched: r.matched };
     const id = nextId();
-    // 본문을 못 읽은 기사는 제목+요약으로 대조한다 (수치 주장만 확인 가능 — lib/verify/rules.ts)
+    // 본문을 못 읽은 기사는 추천 자료로만 남긴다.
     if (c.text) texts.set(id, c.text);
     else if (c.snippet) texts.set(id, `${c.title}.\n${c.snippet}`);
     sources.push({
@@ -239,7 +278,7 @@ export async function gatherEvidence(
       snippet: c.snippet,
       duplicates: c.duplicates,
       factcheck: c.factcheck,
-      relevance: { score: r.score, grade: r.grade, matched: r.matched },
+      relevance,
       full_text_read: Boolean(c.text),
     });
   }

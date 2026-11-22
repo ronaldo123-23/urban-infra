@@ -29,7 +29,7 @@ function isPublicHttpUrl(raw: string): boolean {
 /** HTML → 읽을 수 있는 본문 텍스트 (스크립트·메뉴 제거, 문단 단위 줄바꿈) */
 export function htmlToText(html: string): string {
   const body = html
-    .replace(/<(script|style|noscript|svg|header|footer|nav|form|iframe)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<(script|style|noscript|svg|header|footer|nav|select|textarea|button|iframe)[\s\S]*?<\/\1>/gi, " ")
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/tr|\/section|\/article)[^>]*>/gi, "\n")
     .replace(/<[^>]+>/g, " ");
@@ -62,7 +62,15 @@ export async function fetchPageText(url: string): Promise<PageText | null> {
   if (len > MAX_BYTES) return null;
   if (/\/(login|signin|accounts)\b/i.test(new URL(res.url).pathname)) return null; // 로그인 벽
 
-  const html = (await res.text()).slice(0, MAX_BYTES);
+  const charset = /charset\s*=\s*["']?([\w-]+)/i.exec(type)?.[1] ?? "utf-8";
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > MAX_BYTES) return null;
+  let html: string;
+  try {
+    html = new TextDecoder(charset).decode(bytes);
+  } catch {
+    html = new TextDecoder().decode(bytes);
+  }
   const meta = readMetaTags(html);
   const title = decodeEntities(meta["og:title"] ?? /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1]?.trim() ?? "");
   const text = htmlToText(html);
