@@ -11,8 +11,9 @@
 - [geonhee] 개선 PR D (제안): 새 시험 세트에서 틀린 8개 원인 고치기 — 아래 Open Questions 참고
 
 ## Done
-- [geonhee] ‘거짓’이라는 단어 없이도 현재 게시물의 내용을 지어냈거나 실제로 일어나지 않았다고 밝힌 문구를 인식, 2026-11-22, geonhee/implicit-false-disclosure PR 예정.
-- [geonhee] 게시물 자체의 허위 명시를 캡션 추출 단계에서 표시, 2026-11-22, geonhee/self-disclosed-false PR 예정.
+- [partner] ‘거짓’이라는 단어 없이도 현재 게시물의 내용을 지어냈거나 실제로 일어나지 않았다고 밝힌 문구를 인식, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/12
+- [partner] 게시물 자체의 허위 명시를 캡션 추출 단계에서 표시, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/10
+- [partner] 뉴스 후보를 주장 문맥과 수치·단위로 선별 (`geonhee/article-context`), 2026-11-22 — 2026-11-23 머지 때 충돌 부분은 main 유지로 정해서 코드는 반영되지 않음 (main의 연관성 점수·원문 대조가 같은 역할)
 - [geonhee] 초기 구성 파일 추가 (AGENTS.md, CLAUDE.md, PROGRESS.md, README.md), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/1
 - [geonhee] 1단계 글 읽기 프로토타입 (링크 입력 → oEmbed/메타 태그/직접 붙여넣기, PWA 공유 대상), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/3
 - [geonhee] 2단계 판정 기능 (규칙으로 주장 추출·판정, 네이버 뉴스 팩트체크 검색, KOSIS 연동 코드, Claude 경로는 꺼 둠), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/4
