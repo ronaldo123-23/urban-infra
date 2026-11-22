@@ -7,11 +7,12 @@
 ## In Progress
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
-- [geonhee] 파트너 브랜치 2개 합치기 (`article-context`: 충돌은 main 유지, `bilingual-evidence-search`: `prototypes/jamkkan/`으로), `geonhee/merge-partner-branches`
+- [geonhee] PR #14(partner) 조정해서 합치기, `geonhee/evidence-and-reading-fix`
 - [geonhee] 개선 PR D (제안): 새 시험 세트에서 틀린 8개 원인 고치기 — 아래 Open Questions 참고
 
 ## Done
-- [geonhee] 읽기 상태·수치 단위·행사 문맥·근거 표시 개선, 2026-11-22, geonhee/evidence-and-reading 검토용 브랜치.
+- [partner] 읽기 상태·수치 단위·행사 문맥·근거 표시 개선, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/14 — geonhee 지시로 3가지 조정 후 합침 (아래 Decisions 2026-11-23)
+- [geonhee] 파트너 브랜치 2개 합치기 (`article-context`: 충돌은 main 유지, `bilingual-evidence-search`: `prototypes/jamkkan/`으로), 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/13
 - [partner] ‘거짓’이라는 단어 없이도 현재 게시물의 내용을 지어냈거나 실제로 일어나지 않았다고 밝힌 문구를 인식, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/12
 - [partner] 게시물 자체의 허위 명시를 캡션 추출 단계에서 표시, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/10
 - [geonhee] 시험 세트 23개로 늘리기, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/11
@@ -68,6 +69,11 @@
 - 2026-11-23: PR #11, #12도 geonhee의 지시로 Claude가 머지함 (#10은 partner가 직접 머지). #12는 파트너 사본에만 있던 브랜치라 Claude가 대신 PR을 열었음.
 - 2026-11-23: 파트너 브랜치 `article-context`는 충돌난 `lib/verify/evidence.ts`·AGENTS.md를 main 버전으로 두기로 함 (geonhee 결정). 그래서 파트너의 "한 문장에 주제+숫자가 같이 있어야 뉴스 후보" 규칙은 코드에 들어가지 않았음. 같은 목적은 main의 연관성 점수(`relevance.ts`)와 원문 대조(`rules.ts`)가 맡음.
 - 2026-11-23: 파트너 브랜치 `bilingual-evidence-search`(맨 처음 커밋에서 시작한 별도 앱 "잠깐!")는 `prototypes/jamkkan/` 폴더로 옮겨 합침 (geonhee 결정). 원래의 AGENTS.md·CLAUDE.md·PROGRESS.md는 `prototypes/jamkkan/docs/original-*.md`로 옮겨, 저장소 규칙 기준은 맨 위 AGENTS.md 하나로 유지. 폴더 안에서 빌드·시험 3개 통과.
+- 2026-11-23: PR #14(partner)를 그대로 합치면 시험 세트가 15/23 → 13/23으로 떨어져서, geonhee 결정으로 3가지를 조정해 합침:
+  1. 마라톤 "18% 더 높다"(원문은 18%포인트 차이): PR #14는 "근거와 다름"으로 냈지만, 수치가 같으므로 **"확인됨 + 표현 주의"**로 바꿈. 대상(참가자) 확인은 근거 문장이 아니라 자료 전체에서 보게 함 (논문 초록은 대상을 다른 문장에서 밝힘).
+  2. 팩트체크 반박: PR #14는 본문을 읽은 기사만 인정했는데, 본문을 못 읽어도 **제목**에 팩트체크 표시 + 반박 표현이 있으면 인정 (스타벅스 소문 회복).
+  3. 도미노피자 행사 페이지가 `evidence.ts`에 직접 들어가 있던 것을 `lexicon.ts`의 `OFFICIAL_EVENT_PAGES` 목록으로 옮기고, 행사 이름 패턴도 "숫자+이름+어택/데이/위크/페스타/세일"로 넓힘.
+  조정 후 성적 15/23 (main과 같음, 바뀐 항목 없음). PR #14의 화면 문구("캡션을 읽었어요", "이미지·영상 속 글자와 음성은 읽지 않아요"), %·%포인트 구분, 조건 대조, 웹페이지 글자 인코딩 처리는 그대로 살림.
 
 ## Open Questions
 - "잠깐!"의 좋은 기능(무료 번역 API로 영어 검색, 세계은행 통계)을 본 앱으로 옮길까? 옮길 때 네이버 검색 결과 웹페이지 직접 읽기(`search.naver.com`)는 공식 API로 바꿔야 함 (기획서의 비공식 스크래핑 금지).
