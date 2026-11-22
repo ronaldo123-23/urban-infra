@@ -44,5 +44,12 @@ npm run start      # 빌드한 결과 실행
 ## 시험
 1단계 통과 기준과 기록 표: [docs/phase1-test.md](docs/phase1-test.md)
 
+판정 시험 세트 (실제 인스타 게시물 + 기대 결과): [docs/test-sets/](docs/test-sets/)
+```bash
+node scripts/verify-sample.mjs                         # 배포본으로
+node scripts/verify-sample.mjs http://localhost:3000   # 로컬 서버로 (npm run build && npm run start)
+```
+각 게시물의 핵심 주장 판정이 기대값과 맞는지 ✅/❌와 "핵심 주장 맞힘: N / 6"을 보여준다.
+
 ## 협업
 작업 규칙은 [AGENTS.md](AGENTS.md), 진행 상황은 [PROGRESS.md](PROGRESS.md)를 본다.

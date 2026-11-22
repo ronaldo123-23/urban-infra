@@ -33,6 +33,10 @@ function escapeRe(s: string): string {
 export function hasTerm(text: string, term: string): boolean {
   if (!term) return false;
   if (/^[a-z0-9 .-]+$/i.test(term)) return new RegExp(`(^|[^a-z])${escapeRe(term)}([^a-z]|$)`, "i").test(text);
+  // 한 글자 한국어 명사(금, 빚, 돈 …)는 "지금·금액"처럼 다른 단어 속 글자와 헷갈리지 않게 앞뒤를 본다
+  if (term.length === 1 && /[가-힣]/.test(term)) {
+    return new RegExp(`(^|[^가-힣])${term}(?=$|[^가-힣]|[은는이가을를의에도와과로만값])`).test(text);
+  }
   return text.includes(term);
 }
 
@@ -46,7 +50,8 @@ function unitPattern(unit: string): string {
 }
 
 /** 같은 숫자·단위가 있는지. %는 두 비율의 차이(%포인트)로 나오는 경우도 인정 */
-export function numberIn(text: string, n: NumberSlot): { hit: boolean; derived: string | null } {
+export function numberIn(rawText: string, n: NumberSlot): { hit: boolean; derived: string | null } {
+  const text = rawText.replace(/(\d),(?=\d{3}(?!\d))/g, "$1"); // "6,515조" → "6515조"
   const v = String(n.value).replace(".", "[.,]");
   const exact = new RegExp(`(^|[^\\d.,])${v}\\s*${unitPattern(n.unit)}(?![a-z])`, "i");
   if (exact.test(text)) return { hit: true, derived: null };

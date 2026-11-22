@@ -40,11 +40,20 @@ export const SYNONYMS: Record<string, string[]> = {
   대회: ["race", "event", "marathon day"],
   // 연구
   연구: ["study", "trial", "research", "연구진", "연구팀"],
+  // 경제·정치
+  한국은행: ["한은", "bank of korea"],
+  빚: ["부채", "채무", "나랏빚", "나라빚"],
+  부채: ["빚", "채무", "나랏빚", "나라빚"],
+  금: ["금값", "금 ETF", "금 투자", "gold"],
+  무기징역수: ["무기수", "무기징역"],
+  인도지원: ["인도적 지원", "대북 지원", "대북지원"],
+  가석방: ["가석방"],
 };
 
 /** 단위 → 원문에서 같은 단위로 보는 표현 (숫자 뒤에 붙음) */
 export const UNIT_ALIASES: Record<string, string[]> = {
   "%": ["%", "％", "퍼센트", "percent", "per cent"],
+  "%p": ["%p", "%포인트", "퍼센트포인트", "포인트", "percentage points"],
   시간: ["시간", "hours", "hour", "hrs", "hr", "h"],
   분: ["분", "minutes", "min"],
   일: ["일", "days", "day"],
@@ -52,6 +61,11 @@ export const UNIT_ALIASES: Record<string, string[]> = {
   년: ["년", "years", "year"],
   명: ["명", "people", "persons", "patients", "participants"],
   배: ["배", "times", "fold"],
+  조: ["조원", "조 원", "조"],
+  억: ["억원", "억 원", "억"],
+  만: ["만원", "만 원", "만명", "만 명", "만"],
+  천: ["천명", "천 명", "천"],
+  원: ["원"],
   세: ["세", "살", "years old", "aged"],
   km: ["km", "킬로미터", "kilometres", "kilometers"],
 };

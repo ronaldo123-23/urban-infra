@@ -30,7 +30,7 @@ export interface Evidence {
 }
 
 const MAX_SOURCES = 8;
-const FULLTEXT_PER_CLAIM = 2; // 뉴스·웹문서 중 본문까지 읽을 개수 (시간 제한 때문에)
+const FULLTEXT_PER_CLAIM = 3; // 뉴스·웹문서 중 본문까지 읽을 개수 (시간 제한 때문에)
 const RESEARCH_RE = /연구|논문|임상|실험|학술|저널/;
 
 function normalizeTitle(t: string): string[] {
@@ -85,13 +85,35 @@ function hostOf(url: string): string | null {
   }
 }
 
-async function newsCandidates(words: string[]): Promise<Candidate[]> {
-  const [fc, plain] = await Promise.all([
-    searchNews(`팩트체크 ${words.slice(0, 3).join(" ")}`, 10),
-    searchNews(words.slice(0, 4).join(" "), 10),
-  ]);
-  const fcUrls = new Set(fc.map((x) => x.url));
-  return groupNews([...fc, ...plain]).map(({ item, duplicates }) => ({
+// 큰 숫자일수록 기사 제목에 그대로 나올 가능성이 높아 검색어로 쓸 가치가 크다 (날짜·기간보다 먼저)
+const SEARCH_UNIT_ORDER = ["조", "억", "만", "천", "%", "%p", "명", "원", "배", "세"];
+
+/**
+ * 뉴스 검색어 3가지 (docs/IMPROVEMENT_PLAN.md PR C):
+ * ① 숫자 + 핵심어 2개 ("6515조 국가 부채") — 기사 제목에 숫자가 그대로 나오는 경우가 많다
+ * ② 핵심어 3개 (숫자 없이)
+ * ③ "팩트체크" + 핵심어 2개
+ */
+export function newsQueries(words: string[], slots: ClaimSlots): { query: string; factcheck: boolean }[] {
+  const core = words.filter((w) => !/^\d/.test(w));
+  const num = [...slots.numbers]
+    .filter((n) => SEARCH_UNIT_ORDER.includes(n.unit) && n.value !== 0)
+    .sort((a, b) => SEARCH_UNIT_ORDER.indexOf(a.unit) - SEARCH_UNIT_ORDER.indexOf(b.unit))[0];
+  const qs: { query: string; factcheck: boolean }[] = [];
+  if (num && core.length > 0) qs.push({ query: [num.raw, ...core.slice(0, 2)].join(" "), factcheck: false });
+  if (core.length > 0) qs.push({ query: core.slice(0, 3).join(" "), factcheck: false });
+  if (core.length > 0) qs.push({ query: `팩트체크 ${core.slice(0, 2).join(" ")}`, factcheck: true });
+  const seen = new Set<string>();
+  return qs.filter((q) => (seen.has(q.query) ? false : (seen.add(q.query), true)));
+}
+
+async function newsCandidates(words: string[], slots: ClaimSlots): Promise<Candidate[]> {
+  const queries = newsQueries(words, slots);
+  const results = await Promise.all(queries.map((q) => searchNews(q.query, 10)));
+  const fcUrls = new Set(results.flatMap((r, i) => (queries[i].factcheck ? r.map((x) => x.url) : [])));
+  // 받아쓰기 묶음의 대표 기사는 팩트체크 기사가 되도록 팩트체크 검색 결과를 먼저 넣는다
+  const ordered = [...results.filter((_, i) => queries[i].factcheck), ...results.filter((_, i) => !queries[i].factcheck)];
+  return groupNews(ordered.flat()).map(({ item, duplicates }) => ({
     kind: "news",
     ...item,
     duplicates,
@@ -153,7 +175,7 @@ export async function gatherEvidence(
   const jobs: Promise<void>[] = [];
   if (naverConfigured()) {
     jobs.push(
-      newsCandidates(words)
+      newsCandidates(words, req.slots)
         .then((c) => {
           newsSearched = true;
           candidates.push(...c);
@@ -204,7 +226,9 @@ export async function gatherEvidence(
   for (const { c, r } of scored.sort((a, b) => b.r.score - a.r.score)) {
     if (r.grade === "irrelevant" || sources.length >= MAX_SOURCES) continue;
     const id = nextId();
+    // 본문을 못 읽은 기사는 제목+요약으로 대조한다 (수치 주장만 확인 가능 — lib/verify/rules.ts)
     if (c.text) texts.set(id, c.text);
+    else if (c.snippet) texts.set(id, `${c.title}.\n${c.snippet}`);
     sources.push({
       id,
       kind: c.kind,
