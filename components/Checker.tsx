@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ExtractAttempt, ExtractResponse } from "@/lib/extract/types";
+import VerdictPanel from "./VerdictPanel";
 
 const METHOD_LABEL: Record<string, string> = {
   oembed: "Meta 공식 oEmbed",
@@ -159,12 +160,7 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
         </form>
       )}
 
-      {r?.caption_clean != null && (
-        <section className="card placeholder" aria-label="판정 결과">
-          <h2 className="section-title">판정</h2>
-          <p className="muted">판정 기능 준비 중이에요. 다음 단계에서 주장별로 근거 기사와 함께 알려줄게요.</p>
-        </section>
-      )}
+      {r?.caption_clean ? <VerdictPanel key={r.fetched_at} caption={r.caption_clean} /> : null}
     </div>
   );
 }

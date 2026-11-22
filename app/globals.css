@@ -10,6 +10,10 @@
   --color-error-bg: #fdecec;
   --color-error-text: #a61b1b;
   --color-notice-bg: #fff6e0;
+  --color-verdict-confirmed: #1a7f4b;
+  --color-verdict-false: #c62828;
+  --color-verdict-unverified: #8a6100;
+  --color-verdict-not-target: #5e6372;
 
   --font-sans: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
   --text-sm: 0.875rem;
@@ -39,6 +43,10 @@
     --color-error-bg: #3a1a1c;
     --color-error-text: #ffb4b4;
     --color-notice-bg: #3a3220;
+    --color-verdict-confirmed: #5fd39a;
+    --color-verdict-false: #ff8a80;
+    --color-verdict-unverified: #f2c14e;
+    --color-verdict-not-target: #a3a8b8;
   }
 }
 
@@ -124,4 +132,18 @@ html, body {
 .details summary { cursor: pointer; font-size: var(--text-sm); font-weight: 600; min-height: 32px; }
 .attempts { margin: var(--space-2) 0 0; padding-left: var(--space-4); font-size: var(--text-sm); }
 
-.placeholder { border-style: dashed; }
+.claims { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.claim { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+.claim-text { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.claim-reason { margin: 0; font-size: var(--text-sm); }
+.label-sm { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--color-muted); }
+
+.badge { align-self: flex-start; font-size: var(--text-sm); font-weight: 700; padding: 2px var(--space-2); border-radius: 999px; border: 1.5px solid currentColor; }
+.badge-confirmed { color: var(--color-verdict-confirmed); }
+.badge-false { color: var(--color-verdict-false); }
+.badge-unverified { color: var(--color-verdict-unverified); }
+.badge-not_target { color: var(--color-verdict-not-target); }
+
+.sources { margin: var(--space-1) 0 0; padding-left: var(--space-4); font-size: var(--text-sm); }
+.source { overflow-wrap: anywhere; margin-bottom: var(--space-1); }
+.source a { color: var(--color-primary); }
