@@ -7,12 +7,14 @@
 ## In Progress
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
-- [geonhee] 시험 세트 늘리기 (6개 → 23개), `geonhee/test-set-expand`
+- [geonhee] 파트너 브랜치 2개 합치기 (`article-context`: 충돌은 main 유지, `bilingual-evidence-search`: `prototypes/jamkkan/`으로), `geonhee/merge-partner-branches`
 - [geonhee] 개선 PR D (제안): 새 시험 세트에서 틀린 8개 원인 고치기 — 아래 Open Questions 참고
 
 ## Done
 - [partner] ‘거짓’이라는 단어 없이도 현재 게시물의 내용을 지어냈거나 실제로 일어나지 않았다고 밝힌 문구를 인식, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/12
 - [partner] 게시물 자체의 허위 명시를 캡션 추출 단계에서 표시, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/10
+- [geonhee] 시험 세트 23개로 늘리기, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/11
+- [partner] 별도 시제품 "잠깐!" (한·영 근거 검색, `geonhee/bilingual-evidence-search`), 2026-11-22 — 2026-11-23 `prototypes/jamkkan/` 폴더로 옮겨 합침 (본 앱과 따로 동작)
 - [partner] 뉴스 후보를 주장 문맥과 수치·단위로 선별 (`geonhee/article-context`), 2026-11-22 — 2026-11-23 머지 때 충돌 부분은 main 유지로 정해서 코드는 반영되지 않음 (main의 연관성 점수·원문 대조가 같은 역할)
 - [geonhee] 초기 구성 파일 추가 (AGENTS.md, CLAUDE.md, PROGRESS.md, README.md), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/1
 - [geonhee] 1단계 글 읽기 프로토타입 (링크 입력 → oEmbed/메타 태그/직접 붙여넣기, PWA 공유 대상), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/3
@@ -62,8 +64,12 @@
 - 2026-11-23: PR #9도 geonhee의 직접 지시로 Claude가 머지함.
 - 2026-11-23: 시험 세트를 23개로 늘림 — `politics-economy.json` 17개(정치·경제 일반 계정 게시물, 새 11개 추가), `regression.json` 6개(마라톤 2·팩트체크된 소문 3·시점 1, 소문은 글만 넣어 시험). 새 11개도 네이버 뉴스로 직접 대조해 모두 "기사와 일치"로 정답을 정함. `scripts/verify-sample.mjs`는 이제 기본으로 모든 세트를 돌리고, url 없이 caption만 있는 항목도 돌림.
 - 2026-11-23: 배포본 성적 15/23 — 기존 12개는 12/12, 새 11개는 3/11. PR C까지의 규칙이 처음 6개에 맞춰져 있었다는 뜻 (과적합).
+- 2026-11-23: PR #11, #12도 geonhee의 지시로 Claude가 머지함 (#10은 partner가 직접 머지). #12는 파트너 사본에만 있던 브랜치라 Claude가 대신 PR을 열었음.
+- 2026-11-23: 파트너 브랜치 `article-context`는 충돌난 `lib/verify/evidence.ts`·AGENTS.md를 main 버전으로 두기로 함 (geonhee 결정). 그래서 파트너의 "한 문장에 주제+숫자가 같이 있어야 뉴스 후보" 규칙은 코드에 들어가지 않았음. 같은 목적은 main의 연관성 점수(`relevance.ts`)와 원문 대조(`rules.ts`)가 맡음.
+- 2026-11-23: 파트너 브랜치 `bilingual-evidence-search`(맨 처음 커밋에서 시작한 별도 앱 "잠깐!")는 `prototypes/jamkkan/` 폴더로 옮겨 합침 (geonhee 결정). 원래의 AGENTS.md·CLAUDE.md·PROGRESS.md는 `prototypes/jamkkan/docs/original-*.md`로 옮겨, 저장소 규칙 기준은 맨 위 AGENTS.md 하나로 유지. 폴더 안에서 빌드·시험 3개 통과.
 
 ## Open Questions
+- "잠깐!"의 좋은 기능(무료 번역 API로 영어 검색, 세계은행 통계)을 본 앱으로 옮길까? 옮길 때 네이버 검색 결과 웹페이지 직접 읽기(`search.naver.com`)는 공식 API로 바꿔야 함 (기획서의 비공식 스크래핑 금지).
 - 개선 PR D를 할까? 새 시험 세트에서 틀린 8개 원인:
   1. **잘못된 "근거와 다름"**: 특검법 게시물 — 법 이름 "조작기소"의 "조작"이 반박 표현 목록에 걸림 (가장 급함)
   2. 숫자 읽기: "1,334.7원"(쉼표+소수점)을 334.7로 읽음, "2만4794명"(만+숫자)을 2만으로 읽음
