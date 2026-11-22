@@ -4,7 +4,7 @@
 import { claudeConfigured, describeClaudeError } from "@/lib/ai/claude";
 import { extractClaims, type ExtractedClaim } from "@/lib/claims/extract";
 import { BATCH_SIZE, extractClaimsByRules } from "@/lib/claims/rules";
-import { gatherEvidence, type Evidence } from "./evidence";
+import { eventOf, gatherEvidence, type Evidence } from "./evidence";
 import { judgeClaims } from "./judge";
 import { kosisConfigured } from "./kosis";
 import { naverConfigured } from "./naver";
@@ -89,7 +89,7 @@ export async function verifyCaption(caption: string, offset = 0): Promise<Verify
       evidence.set(
         c,
         await gatherEvidence(
-          { claim: c.text, type: c.type, keywords: c.keywords, statQuery: c.statQuery, slots: slots.get(c)! },
+          { claim: c.text, type: c.type, keywords: c.keywords, statQuery: c.statQuery, slots: slots.get(c)!, event: eventOf(c.text, caption) },
           nextId,
           warnings,
         ),

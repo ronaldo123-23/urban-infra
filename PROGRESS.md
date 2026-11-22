@@ -11,6 +11,7 @@
 - [geonhee] 개선 PR D (제안): 새 시험 세트에서 틀린 8개 원인 고치기 — 아래 Open Questions 참고
 
 ## Done
+- [geonhee] 읽기 상태·수치 단위·행사 문맥·근거 표시 개선, 2026-11-22, geonhee/evidence-and-reading 검토용 브랜치.
 - [partner] ‘거짓’이라는 단어 없이도 현재 게시물의 내용을 지어냈거나 실제로 일어나지 않았다고 밝힌 문구를 인식, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/12
 - [partner] 게시물 자체의 허위 명시를 캡션 추출 단계에서 표시, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/10
 - [geonhee] 시험 세트 23개로 늘리기, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/11
