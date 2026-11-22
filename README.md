@@ -1,6 +1,8 @@
 # urban-infra
 도시인프라 — 인스타그램 게시물 사실 확인 서비스 "진짜일까?" (기획: [docs/SPEC.md](docs/SPEC.md))
 
+배포 주소: https://urban-infra-jet.vercel.app (`main`에 머지하면 자동 배포)
+
 인스타 게시물 링크를 넣으면 글(캡션)을 읽고(1단계), 글 속 주장을 골라 팩트체크 기사·공식 통계로 판정한다(2단계).
 
 ## 설치
