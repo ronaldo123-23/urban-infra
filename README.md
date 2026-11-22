@@ -54,5 +54,8 @@ node scripts/verify-sample.mjs <주소> docs/test-sets/regression.json   # 세�
 - `politics-economy.json`: 인스타 일반 계정의 정치·시사·경제 게시물 17개
 - `regression.json`: 예전에 맞힌 사례 6개 (마라톤, 팩트체크된 소문, 시점 규칙) — 규칙을 바꿀 때 이게 깨지면 안 됨
 
+## 시제품
+- `prototypes/jamkkan/`: 파트너가 따로 만든 "잠깐!" 앱 (한·영 근거 검색). 본 앱과 별개로 그 폴더 안에서 실행한다 → [prototypes/jamkkan/README.md](prototypes/jamkkan/README.md)
+
 ## 협업
 작업 규칙은 [AGENTS.md](AGENTS.md), 진행 상황은 [PROGRESS.md](PROGRESS.md)를 본다.

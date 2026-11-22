@@ -60,8 +60,11 @@ lib/ai/              (선택) Claude API 클라이언트 공통 설정
 lib/claims/          주장 추출 — 규칙(rules.ts, 기본) / Claude(extract.ts, 선택)
 lib/verify/          근거 검색(naver.ts, kosis.ts, evidence.ts), 판정 — 규칙(rules.ts, 기본) / Claude(judge.ts, 선택), 결과 형식(types.ts)
 public/icons/        PWA 아이콘
-docs/                기획서(SPEC.md), 시험 기록(phase1-test.md)
+docs/                기획서(SPEC.md), 시험 기록(phase1-test.md), 개선 계획, 시험 세트(test-sets/)
+scripts/             시험 세트 실행(verify-sample.mjs)
+prototypes/jamkkan/  파트너의 별도 시제품 "잠깐!" (본 앱과 따로 동작, 빌드·배포에 안 쓰임)
 ```
+- `prototypes/` 안의 시제품은 본 앱과 섞지 않는다. 시제품의 기능을 본 앱에 옮길 때는 본 앱 구조(`lib/` 등)로 새로 옮기고 PR을 따로 연다.
 - 단계 사이의 데이터는 `lib/extract/types.ts`의 `ExtractionResult`, `lib/verify/types.ts`의 `VerifyResponse` 형식으로 주고받는다. 형식을 바꾸면 PR에 적는다.
 
 ## 4. 네이밍 & 코드 스타일
