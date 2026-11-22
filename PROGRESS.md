@@ -7,7 +7,7 @@
 ## In Progress
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
-- [geonhee] 개선 PR A: 주장 고르기와 보류 이유 (`docs/IMPROVEMENT_PLAN.md` 3절), `geonhee/claim-selection` — PR #5 위에 쌓은 브랜치
+- [geonhee] 개선 PR A: 주장 고르기와 보류 이유 (`docs/IMPROVEMENT_PLAN.md` 3절), `geonhee/claim-selection`, https://github.com/sten5891-code/urban-infra/pull/6 — PR #5 위에 쌓은 브랜치 (#5 먼저 머지)
 - [geonhee] 개선 PR B: 원문 찾기와 대조 — PR A 머지 후 시작
 
 ## Done
