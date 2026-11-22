@@ -59,10 +59,7 @@ export function judgeByRules(claim: string, sources: Source[]): RuleJudgement {
   return {
     verdict: "unverified",
     evidenceIds: [],
-    reason: hasFactcheck
-      ? "관련 팩트체크 기사는 있지만 이 주장을 직접 반박하는지는 자동으로 판단하지 못했어요. 아래 자료를 읽어 보세요."
-      : sources.length > 0
-        ? "이 주장을 검증한 팩트체크 기사를 찾지 못했어요. 아래 관련 자료를 직접 읽고 판단해 보세요."
-        : "관련 보도나 검증을 찾지 못했어요. 최근 속보라면 아직 기사가 없을 수 있어요.",
+    // 보류 이유 문구는 lib/verify/index.ts의 holdMessage가 정한다. 여기서는 덧붙일 안내만.
+    reason: hasFactcheck ? "관련 팩트체크 기사가 있어요. 아래 자료에서 직접 읽어 보세요." : "",
   };
 }

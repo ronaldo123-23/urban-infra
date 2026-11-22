@@ -1,16 +1,47 @@
 // AI 없이 규칙으로 주장 고르기 (Claude 키가 없을 때 기본 경로).
-// 문장으로 나누고 → 질문·의견·광고는 "판단 대상 아님" → 숫자가 있으면 통계 주장 → 검색 핵심어 뽑기.
+// 1) 캡션 전체를 문장으로 나눈다
+// 2) 제목 조각·소개 문장·같은 내용 반복은 "검증에서 뺀 문장"으로 따로 둔다
+// 3) 질문·의견·광고·조언은 "판단 대상 아님"
+// 4) 나머지는 검증할 주장 — 수치·날짜·출처가 있는 문장부터 우선순위를 매긴다
+// 검증은 BATCH_SIZE개씩 나눠서 한다 (lib/verify/index.ts).
 
 import type { ExtractedClaim } from "./extract";
 
-export const MAX_RULE_CLAIMS = 5;
+export const BATCH_SIZE = 5;
+
+export interface SkippedSentence {
+  text: string;
+  reason: string;
+}
+
+export interface RuleClaims {
+  /** 검증할 주장 (우선순위 높은 순) */
+  claims: ExtractedClaim[];
+  /** 판단 대상 아님 (질문·의견·광고·조언) — 원문 순서 */
+  notTargets: ExtractedClaim[];
+  /** 검증에서 뺀 문장 (제목 조각·소개 문장·반복) — 원문 순서 */
+  skipped: SkippedSentence[];
+}
 
 const QUESTION_RE = /[?？]|(인가요|일까요|일까|나요|ㄹ까)\s*[.…]*$/;
 // 의견·감상·광고·행동 요청 표현
 const OPINION_RE =
   /(대박|최고|미쳤|레전드|강추|추천|좋아요|팔로우|구독|댓글|공유해|저장해|꼭\s*(가|해|사|보)|해\s*보세요|가\s*보세요|드셔\s*보|느낌|생각(해|합니다|이다)|같아요|것\s*같|ㅋㅋ|ㅎㅎ|ㅠㅠ|링크는\s*프로필|프로필\s*링크|할인\s*코드|광고|협찬|DM)/;
-// 숫자 + 단위 → 통계·수치 주장
-const NUMBER_RE = /\d[\d,.]*\s*(%|퍼센트|명|원|배|만|억|조|건|세|살|년|개|위|kg|km|시간)/;
+// 조언·권유 ("~하는 것이 더 안전합니다", "~하세요")
+const ADVICE_RE = /(것이\s*(더\s*)?(좋|안전|바람직|현명|낫)|하시길|하세요|드세요|피하세요|주의하세요|챙기세요|권해\s*드|추천드)/;
+// 소개·연결 문장 ("~소식입니다", "~했는데요", "~알아볼게요")
+const INTRO_RE =
+  /(소식입니다|소식이에요|소식이 있습니다|알아볼게요|알아보겠습니다|살펴볼게요|살펴보겠습니다|정리했습니다|정리해\s*봤|정리해\s*드|궁금하시죠|함께\s*보시죠|해\s*볼까요|했는데요|하는데요|인데요|이라는데요|라는데요)\s*[.!…]*$/;
+// 서술어로 끝나는 완결된 문장인지 (아니면 제목 조각으로 본다)
+const SENTENCE_END_RE = /(다|요|죠|니다|음|함|됨|임|까|네|군|지)\s*[.!…"”'’)]*$/;
+
+// 우선순위 신호
+const NUMBER_RE = /\d[\d,.]*\s*(%|％|퍼센트|%p|포인트|명|원|배|만|억|조|건|세|살|년|월|일|개|위|kg|km|시간|분|초|회|번|달|주)/;
+const DATE_RE = /(\d{4}년|\d{1,2}월|\d{1,2}일|\d+\s*시간|내년|올해|작년|지난해|이번\s*달|오는\s*\d)/;
+const SOURCE_RE =
+  /(연구|논문|조사|통계|발표|보고서|가이드|지침|권고|교수|박사|의사|전문가|책임자|기관|정부|부처|공단|협회|학회|대학|청은|처는|부는|에\s*따르면|밝혔|발표했|보고됐|나타났|확인됐)/;
+// 통계 대조(KOSIS)에 맞는 단위
+const STAT_RE = /\d[\d,.]*\s*(%|％|퍼센트|명|원|배|만|억|조|건|세|가구|곳)/;
 
 const PARTICLES = [
   "으로부터", "에서부터", "이라고", "이라는", "에서는", "으로는", "까지", "부터", "에서", "에게", "으로", "이라",
@@ -18,11 +49,12 @@ const PARTICLES = [
 ];
 // 긴 어미부터 (전해 들은 말투 "~한다고/~한대요" 포함)
 const ENDINGS =
-  /(한답니다|된답니다|했답니다|한다고요|된다고요|한다고|된다고|했다고|이라고요|이래요|한대요|된대요|했대요|한대|된대|했대|했습니다|합니다|됩니다|입니다|했다|한다|된다|이다|였다|이었다|하는|했던|하며|하고|해서|되어|됐다|다고|된|할|한)$/;
+  /(한답니다|된답니다|했답니다|한다고요|된다고요|한다고|된다고|했다고|이라고요|이래요|한대요|된대요|했대요|한대|된대|했대|했습니다|합니다|됩니다|입니다|습니다|되고|했다|한다|된다|이다|였다|이었다|하는|했던|하며|하고|해서|되어|됐다|다고|된|할|한)$/;
 const STOP = new Set([
-  "그리고", "하지만", "그러나", "이번", "지금", "정말", "진짜", "너무", "모두", "우리", "여러분", "오늘", "이제", "바로",
-  "통해", "대한", "위해", "있는", "없는", "있다", "없다", "것으로", "것이", "등을",
+  "그리고", "하지만", "그러나", "그런데", "또한", "특히", "실제로", "이미", "이번", "지금", "정말", "진짜", "너무", "모두",
+  "우리", "여러분", "오늘", "이제", "바로", "통해", "대한", "위해", "있는", "없는", "있다", "없다", "것으로", "것이", "등을",
   "합니다", "한다", "했다", "된다", "있습니다", "없습니다", "같습니다", "말했다", "밝혔다", "전했다", "알려졌다",
+  "경우", "대상", "그룹", "사례", "결과", "정도", "이상", "이하", "그렇지", "않은", "같은", "어떤", "모든", "가장",
 ]);
 
 function stripWord(w: string): string {
@@ -40,7 +72,10 @@ function stripWord(w: string): string {
   return s;
 }
 
-/** 검색 핵심어: 조사·어미를 떼고 의미 있는 단어 최대 5개 */
+/**
+ * 검색 핵심어: 조사·어미를 떼고 의미 있는 단어 최대 max개.
+ * 긴 단어·영문(약 이름, 기관명)을 우선하고, 숫자는 뒤에 하나 붙인다.
+ */
 export function keywordsOf(sentence: string, max = 5): string[] {
   const all: string[] = [];
   for (const raw of sentence.split(/\s+/)) {
@@ -48,35 +83,82 @@ export function keywordsOf(sentence: string, max = 5): string[] {
     if (w.length < 2 || STOP.has(w) || all.includes(w)) continue;
     all.push(w);
   }
-  // 날짜·숫자보다 의미 있는 단어를 먼저 (검색과 관련성 판단에 더 중요함), 숫자는 뒤에 붙인다
   const words = all.filter((w) => !/^\d/.test(w));
   const numbers = all.filter((w) => /^\d/.test(w));
-  return [...words.slice(0, max - Math.min(1, numbers.length)), ...numbers].slice(0, max);
+  const score = (w: string) => (w.length >= 3 ? 2 : 1) + (/[A-Za-z]/.test(w) ? 2 : 0);
+  const ranked = words
+    .map((w, i) => ({ w, i, s: score(w) }))
+    .sort((a, b) => b.s - a.s || a.i - b.i)
+    .slice(0, max - Math.min(1, numbers.length))
+    .sort((a, b) => a.i - b.i) // 고른 뒤에는 문장 순서대로
+    .map((x) => x.w);
+  return [...ranked, ...numbers].slice(0, max);
 }
 
 export function splitIntoSentences(text: string): string[] {
   return text
     .split(/(?<=[.!?。…])\s+|\n+/)
-    .map((s) => s.replace(/^[\s“"'‘\-•·]+|[\s”"'’]+$/g, "").trim())
-    .filter((s) => s.length >= 8);
+    .map((s) => s.replace(/^[\s“"'‘\-•·▶►✔✅📌]+|[\s”"'’]+$/gu, "").trim())
+    .filter((s) => s.length >= 6);
 }
 
-export function extractClaimsByRules(caption: string): ExtractedClaim[] {
-  const claims: ExtractedClaim[] = [];
-  const seen = new Set<string>();
-  for (const s of splitIntoSentences(caption)) {
-    const key = keywordsOf(s).join(" ");
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
+/** 검증 우선순위 점수: 수치 > 출처 > 날짜, 짧은 일반 문장은 낮게 */
+export function priorityOf(s: string): number {
+  let p = 0;
+  if (NUMBER_RE.test(s)) p += 3;
+  if (SOURCE_RE.test(s)) p += 3;
+  if (DATE_RE.test(s)) p += 1;
+  if (/수\s*있(습니다|어요|다)/.test(s)) p -= 1; // "~할 수 있습니다" 같은 가능성 문장
+  return p;
+}
+
+function overlapRatio(a: string[], b: string[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  const sb = new Set(b);
+  return a.filter((w) => sb.has(w)).length / Math.min(a.length, b.length);
+}
+
+export function extractClaimsByRules(caption: string): RuleClaims {
+  const candidates: { claim: ExtractedClaim; order: number; priority: number; words: string[] }[] = [];
+  const notTargets: ExtractedClaim[] = [];
+  const skipped: SkippedSentence[] = [];
+
+  splitIntoSentences(caption).forEach((s, order) => {
+    const words = keywordsOf(s);
+    if (words.length === 0) return;
 
     if (QUESTION_RE.test(s)) {
-      claims.push(notTarget(s, "질문이라 사실 여부를 따질 수 없어요."));
-    } else if (OPINION_RE.test(s)) {
-      claims.push(notTarget(s, "의견·감상이나 광고·행동 요청 문구예요."));
-    } else {
-      const isStat = NUMBER_RE.test(s);
-      const words = keywordsOf(s);
-      claims.push({
+      notTargets.push(notTarget(s, "질문이라 사실 여부를 따질 수 없어요."));
+      return;
+    }
+    if (INTRO_RE.test(s)) {
+      skipped.push({ text: s, reason: "소개·연결 문장" });
+      return;
+    }
+    if (OPINION_RE.test(s)) {
+      notTargets.push(notTarget(s, "의견·감상이나 광고·행동 요청 문구예요."));
+      return;
+    }
+    if (!SENTENCE_END_RE.test(s) || /[,，]\s*$/.test(s)) {
+      skipped.push({ text: s, reason: "제목 조각 (완결된 문장이 아님)" });
+      return;
+    }
+    if (ADVICE_RE.test(s)) {
+      notTargets.push(notTarget(s, "조언·권유 문장이라 사실 여부를 따지지 않아요."));
+      return;
+    }
+    const dup = candidates.find((c) => overlapRatio(c.words, words) >= 0.7);
+    if (dup) {
+      skipped.push({ text: s, reason: "앞 문장과 같은 내용 반복" });
+      return;
+    }
+
+    const isStat = STAT_RE.test(s);
+    candidates.push({
+      order,
+      priority: priorityOf(s),
+      words,
+      claim: {
         text: s,
         checkable: true,
         type: isStat ? "statistic" : "mixed",
@@ -84,11 +166,12 @@ export function extractClaimsByRules(caption: string): ExtractedClaim[] {
         keywords: words.join(" "),
         // KOSIS 검색어: 숫자가 없는 앞쪽 핵심어 2개
         statQuery: isStat ? words.filter((w) => !/\d/.test(w)).slice(0, 2).join(" ") || null : null,
-      });
-    }
-    if (claims.filter((c) => c.checkable).length >= MAX_RULE_CLAIMS) break;
-  }
-  return claims;
+      },
+    });
+  });
+
+  const claims = candidates.sort((a, b) => b.priority - a.priority || a.order - b.order).map((c) => c.claim);
+  return { claims, notTargets, skipped };
 }
 
 function notTarget(text: string, reason: string): ExtractedClaim {

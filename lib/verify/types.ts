@@ -29,12 +29,34 @@ export interface ClaimResult {
   sources: Source[];
   /** 검색은 됐지만 근거로 쓰이지 않은 관련 자료 */
   related: Source[];
+  /** verdict가 unverified일 때 보류 이유. 그 외에는 null */
+  hold_reason: HoldReason | null;
+}
+
+/**
+ * search_not_run=검색을 못 함 (키 없음·오류), no_results=관련 자료 없음,
+ * insufficient_match=관련 자료는 있지만 주장을 확인할 근거를 못 찾음
+ */
+export type HoldReason = "search_not_run" | "no_results" | "insufficient_match";
+
+export interface SkippedSentence {
+  text: string;
+  reason: string;
 }
 
 export interface VerifyResponse {
   /** rules=규칙으로 주장 추출·판정 (기본), llm=Claude가 주장 추출·판정 (ANTHROPIC_API_KEY가 있을 때) */
   mode: "rules" | "llm";
+  /** 이번에 검증한 주장 (+ 첫 묶음에는 판단 대상 아님 문장) */
   claims: ClaimResult[];
+  /** 검증할 주장 전체 개수 (판단 대상 아님 제외) */
+  total_checkable: number;
+  /** 이번 묶음이 시작한 위치 */
+  offset: number;
+  /** 다음 묶음 시작 위치. 남은 주장이 없으면 null */
+  next_offset: number | null;
+  /** 검증에서 뺀 문장 (제목 조각·소개 문장·반복). 첫 묶음에만 */
+  skipped: SkippedSentence[];
   warnings: string[];
   checked_at: string;
 }
