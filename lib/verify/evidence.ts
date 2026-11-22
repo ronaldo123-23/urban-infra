@@ -56,8 +56,9 @@ export async function gatherEvidence(
         searchNews(`팩트체크 ${req.keywords}`, 10),
         searchNews(req.keywords, 10),
       ]);
+      const fcUrls = new Set(fc.map((x) => x.url));
       for (const { item, duplicates } of groupNews([...fc, ...plain]).slice(0, 8)) {
-        sources.push({ id: nextId(), kind: "news", ...item, duplicates });
+        sources.push({ id: nextId(), kind: "news", ...item, duplicates, factcheck: fcUrls.has(item.url) });
       }
     } catch (e) {
       warnings.push(`뉴스 검색 실패: ${(e as Error).message}`);
@@ -76,6 +77,7 @@ export async function gatherEvidence(
           date: t.period,
           snippet: t.values.length ? t.values.join("\n") : "(수치를 가져오지 못함 — 링크에서 직접 확인)",
           duplicates: 1,
+          factcheck: false,
         });
       }
     } catch (e) {

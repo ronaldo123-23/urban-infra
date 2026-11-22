@@ -9,6 +9,11 @@
 - 기획서: [docs/SPEC.md](docs/SPEC.md). 1단계(글 읽기)와 2단계(주장 추출·판정, SPEC 7-1~7-4)를 만든다. SPEC 7-5(OCR, 고령자 화면, 기록 저장·공유)는 아직 만들지 않는다.
 - 금지: 인스타 로그인 우회, 비공식 스크래핑 라이브러리, 계정 쿠키 사용.
 - 판정 규칙 (SPEC 7-3, 7-4):
+  - 기본은 AI 없는 **규칙 판정**이다 (Claude API는 유료라 쓰지 않기로 함). `lib/claims/rules.ts`가 주장을 고르고 `lib/verify/rules.ts`가 판정한다.
+    - "거짓으로 밝혀짐": 팩트체크 기사의 제목·요약에 반박 표현(사실 아님, 거짓, 사실무근 등)이 있고 주장 핵심어의 절반 이상(최소 2개)이 겹칠 때만.
+    - "확인됨": 규칙으로는 내지 않는다.
+    - 그 외: "아직 확인 안 됨" + 관련 자료.
+  - Claude 코드(`lib/ai/`, `lib/claims/extract.ts`, `lib/verify/judge.ts`)는 남겨 두되 `ANTHROPIC_API_KEY`가 있을 때만 켜진다.
   - AI는 우리가 실제로 검색해서 준 출처 번호만 인용한다. 코드에서 다시 검사해, 근거 링크가 없으면 "확인됨"/"거짓으로 밝혀짐"을 "아직 확인 안 됨"으로 바꾼다.
   - "여러 언론사에 나왔다"만으로 확인됨 처리하지 않는다. 제목이 거의 같은 기사(같은 보도자료)는 1개 출처로 묶는다.
   - 게시물 글은 AI에게 데이터로만 넘긴다 (글 안의 지시문을 따르지 않게 프롬프트에 명시).
@@ -19,7 +24,7 @@
 - 패키지 매니저: npm (`package-lock.json` 커밋)
 - 배포: Vercel
 - 인스타 요청과 외부 API(Claude, 네이버, KOSIS) 호출은 반드시 서버(`app/api/...`)에서 한다. 브라우저에서 직접 요청하지 않는다 (CORS, 키 노출).
-- AI: Claude API (`@anthropic-ai/sdk`), 모델 기본값 `claude-opus-5-5` (`ANTHROPIC_MODEL`로 변경 가능). 결과는 구조화 출력(zod 스키마)으로 받는다.
+- AI(선택, 기본 꺼짐): Claude API (`@anthropic-ai/sdk`), 모델 기본값 `claude-opus-5-5` (`ANTHROPIC_MODEL`로 변경 가능). 결과는 구조화 출력(zod 스키마)으로 받는다.
 - 키가 없으면 해당 기능만 꺼지고 나머지는 동작해야 한다 (예: Claude 키가 없으면 관련 기사만 보여줌).
 - 비밀 값(토큰)은 `.env.local`과 Vercel 환경변수에만 둔다. 이름과 설명은 `.env.example`에 적는다.
 
@@ -30,9 +35,9 @@ app/api/extract/     POST /api/extract — 링크 → 추출 결과
 app/api/verify/      POST /api/verify — caption_clean → 주장별 판정
 components/          화면 컴포넌트 (클라이언트 컴포넌트는 "use client")
 lib/extract/         1단계: 링크 검사, oEmbed, 메타 태그, 캡션 정리, 결과 형식(types.ts)
-lib/ai/              Claude API 클라이언트 공통 설정
-lib/claims/          주장 추출 — caption_clean에서 검증할 주장을 문장 단위로 고른다
-lib/verify/          근거 검색(naver.ts, kosis.ts, evidence.ts), 판정(judge.ts), 결과 형식(types.ts)
+lib/ai/              (선택) Claude API 클라이언트 공통 설정
+lib/claims/          주장 추출 — 규칙(rules.ts, 기본) / Claude(extract.ts, 선택)
+lib/verify/          근거 검색(naver.ts, kosis.ts, evidence.ts), 판정 — 규칙(rules.ts, 기본) / Claude(judge.ts, 선택), 결과 형식(types.ts)
 public/icons/        PWA 아이콘
 docs/                기획서(SPEC.md), 시험 기록(phase1-test.md)
 ```

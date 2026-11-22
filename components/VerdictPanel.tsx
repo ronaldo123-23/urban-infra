@@ -104,8 +104,10 @@ export default function VerdictPanel({ caption }: { caption: string }) {
               ))}
             </ul>
           )}
-          {data.mode === "search_only" && (
-            <p className="notice">지금은 AI 판정 없이 관련 기사만 보여주고 있어요. 링크를 직접 읽고 판단해 보세요.</p>
+          {data.mode === "rules" && (
+            <p className="notice">
+              자동 규칙으로 판정했어요. 팩트체크 기사가 분명히 반박한 주장만 &quot;거짓으로 밝혀짐&quot;으로 표시하고, &quot;확인됨&quot;은 규칙으로 판단하지 않아요.
+            </p>
           )}
           <p className="hint">결과가 틀릴 수 있어요. 공유하기 전에 근거 링크를 직접 열어 확인해 보세요.</p>
           {data.warnings.length > 0 && (

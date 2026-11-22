@@ -1,4 +1,5 @@
 // 주장 추출 (docs/SPEC.md 7-1): caption_clean에서 검증할 수 있는 주장만 문장 단위로 골라낸다.
+// Claude 버전 — ANTHROPIC_API_KEY가 있을 때만 쓴다. 기본 경로는 규칙 버전(./rules.ts).
 
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
@@ -67,21 +68,4 @@ export async function extractClaims(caption: string, today: string): Promise<Ext
     keywords: c.keywords.trim() || c.text.slice(0, 40),
     statQuery: c.stat_query.trim() || null,
   }));
-}
-
-/** AI 키가 없을 때: 문장을 규칙으로 나눠 검색용 주장으로 쓴다 */
-export function splitSentences(caption: string): ExtractedClaim[] {
-  return caption
-    .split(/(?<=[.!?。])\s+|\n+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 12 && !/[?？]/.test(s)) // 질문은 주장이 아님
-    .slice(0, 3)
-    .map((s) => ({
-      text: s,
-      checkable: true,
-      type: null,
-      notTargetReason: "",
-      keywords: s.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 40),
-      statQuery: null,
-    }));
 }

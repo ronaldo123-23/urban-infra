@@ -16,6 +16,8 @@ export interface Source {
   snippet: string;
   /** 같은 보도자료를 받아쓴 것으로 보이는 기사 수 (자기 포함). 1개 출처로 센다 */
   duplicates: number;
+  /** "팩트체크 + 핵심어" 검색으로 찾은 기사인지 */
+  factcheck: boolean;
 }
 
 export interface ClaimResult {
@@ -30,8 +32,8 @@ export interface ClaimResult {
 }
 
 export interface VerifyResponse {
-  /** llm=Claude가 주장 추출·판정, search_only=AI 키가 없어 검색 결과만 보여줌 */
-  mode: "llm" | "search_only";
+  /** rules=규칙으로 주장 추출·판정 (기본), llm=Claude가 주장 추출·판정 (ANTHROPIC_API_KEY가 있을 때) */
+  mode: "rules" | "llm";
   claims: ClaimResult[];
   warnings: string[];
   checked_at: string;
