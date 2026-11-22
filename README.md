@@ -32,7 +32,7 @@ npm run start      # 빌드한 결과 실행
 ## 환경변수 (`.env.local`, Vercel)
 | 이름 | 용도 | 없으면 |
 |---|---|---|
-| `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` | 뉴스·팩트체크 기사 검색 | 뉴스 근거 없음 (모든 주장이 "아직 확인 안 됨") |
+| `NAVER_HUB_KEY_ID`, `NAVER_HUB_KEY` (네이버 클라우드 API HUB) 또는 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` (개발자센터) | 뉴스·팩트체크 기사 검색 | 뉴스 근거 없음 (모든 주장이 "아직 확인 안 됨") |
 | `KOSIS_API_KEY` | 통계 대조 | 통계 근거 없음 |
 | `META_OEMBED_TOKEN` | 인스타 글 읽기 1순위 | 메타 태그로 읽음 |
 | `ANTHROPIC_API_KEY` | (선택, 유료) Claude로 주장 추출·판정 | 규칙 판정 (기본) |

@@ -1,5 +1,8 @@
-// 네이버 검색 API (뉴스). https://developers.naver.com/docs/serviceapi/search/news/news.md
-// 환경변수: NAVER_CLIENT_ID, NAVER_CLIENT_SECRET
+// 네이버 검색 API (뉴스). 두 가지 방식을 지원한다 (둘 다 있으면 API HUB를 쓴다).
+// 1) NAVER API HUB (네이버 클라우드, 2026년 이관된 새 방식): NAVER_HUB_KEY_ID, NAVER_HUB_KEY
+//    https://api.ncloud-docs.com/docs/naver-api-hub-search-news
+// 2) 네이버 개발자센터 (기존 방식): NAVER_CLIENT_ID, NAVER_CLIENT_SECRET
+//    https://developers.naver.com/docs/serviceapi/search/news/news.md
 
 import { decodeEntities } from "@/lib/extract/html";
 
@@ -11,11 +14,35 @@ export interface NewsItem {
   snippet: string;
 }
 
-const ENDPOINT = "https://openapi.naver.com/v1/search/news.json";
 const TIMEOUT_MS = 8000;
 
+interface NaverEndpoint {
+  url: string;
+  headers: Record<string, string>;
+}
+
+function endpoint(): NaverEndpoint | null {
+  const hubId = process.env.NAVER_HUB_KEY_ID?.trim();
+  const hubKey = process.env.NAVER_HUB_KEY?.trim();
+  if (hubId && hubKey) {
+    return {
+      url: "https://naverapihub.apigw.ntruss.com/search/v1/news",
+      headers: { "X-NCP-APIGW-API-KEY-ID": hubId, "X-NCP-APIGW-API-KEY": hubKey },
+    };
+  }
+  const id = process.env.NAVER_CLIENT_ID?.trim();
+  const secret = process.env.NAVER_CLIENT_SECRET?.trim();
+  if (id && secret) {
+    return {
+      url: "https://openapi.naver.com/v1/search/news.json",
+      headers: { "X-Naver-Client-Id": id, "X-Naver-Client-Secret": secret },
+    };
+  }
+  return null;
+}
+
 export function naverConfigured(): boolean {
-  return Boolean(process.env.NAVER_CLIENT_ID?.trim() && process.env.NAVER_CLIENT_SECRET?.trim());
+  return endpoint() !== null;
 }
 
 function stripTags(s: string): string {
@@ -36,18 +63,17 @@ function hostOf(url: string): string | null {
 }
 
 export async function searchNews(query: string, display = 10): Promise<NewsItem[]> {
-  const id = process.env.NAVER_CLIENT_ID?.trim();
-  const secret = process.env.NAVER_CLIENT_SECRET?.trim();
-  if (!id || !secret) throw new Error("NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 미설정");
+  const ep = endpoint();
+  if (!ep) throw new Error("네이버 검색 키 미설정 (NAVER_HUB_KEY_ID/KEY 또는 NAVER_CLIENT_ID/SECRET)");
 
-  const url = new URL(ENDPOINT);
+  const url = new URL(ep.url);
   url.searchParams.set("query", query);
   url.searchParams.set("display", String(display));
   url.searchParams.set("start", "1");
   url.searchParams.set("sort", "sim");
 
   const res = await fetch(url, {
-    headers: { "X-Naver-Client-Id": id, "X-Naver-Client-Secret": secret },
+    headers: { ...ep.headers, Accept: "application/json" },
     signal: AbortSignal.timeout(TIMEOUT_MS),
     cache: "no-store",
   });
@@ -55,9 +81,10 @@ export async function searchNews(query: string, display = 10): Promise<NewsItem[
     const body = await res.text().catch(() => "");
     throw new Error(`네이버 검색 HTTP ${res.status} ${body.slice(0, 200)}`);
   }
-  const data = (await res.json()) as {
-    items?: { title: string; originallink?: string; link: string; description: string; pubDate: string }[];
-  };
+  // API HUB는 응답 형식이 다를 수 있다고 안내함 → items가 최상위 또는 result 안에 있는 경우 모두 처리
+  type Item = { title: string; originallink?: string; link: string; description: string; pubDate: string };
+  const raw = (await res.json()) as { items?: Item[]; result?: { items?: Item[] } };
+  const data = { items: raw.items ?? raw.result?.items };
   return (data.items ?? []).map((it) => {
     const link = it.originallink?.trim() || it.link;
     return {
