@@ -8,7 +8,7 @@
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
 - [geonhee] 연관성 기준 문서 (`docs/IMPROVEMENT_PLAN.md` 3-1절), `geonhee/relevance-criteria`, https://github.com/sten5891-code/urban-infra/pull/7
-- [geonhee] 개선 PR B: 원문 찾기와 대조 + 연관성 기준 코드 적용, `geonhee/source-compare` — PR #7 위에 쌓음 (#7 먼저 머지). 로컬 확인 끝, 배포본 확인은 머지 후
+- [geonhee] 개선 PR B: 원문 찾기와 대조 + 연관성 기준 코드 적용, `geonhee/source-compare`, https://github.com/sten5891-code/urban-infra/pull/8 — PR #7 위에 쌓음 (#7 먼저 머지). 로컬 확인 끝, 배포본 확인은 머지 후
 
 ## Done
 - [geonhee] 초기 구성 파일 추가 (AGENTS.md, CLAUDE.md, PROGRESS.md, README.md), 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/1
