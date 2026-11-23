@@ -6,11 +6,12 @@
 
 ## In Progress
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
-- [geonhee] Qwen(알리바바 클라우드) 2차 판정, `geonhee/qwen-verdict` — 실제 호출 시험 완료(무료 모델 `qwen-plus-character`), 리뷰 대기
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
-- [geonhee] 개선 PR D: 새 시험 세트에서 틀린 8개 고치기, `geonhee/pr-d-accuracy` — 로컬 21/23 (배포본 15/23), 리뷰 대기
+- [geonhee] 배포본에서 Qwen 켜기: Vercel 환경변수 `DASHSCOPE_API_KEY`·`DASHSCOPE_BASE_URL`·`QWEN_MODEL` 넣기 (geonhee가 직접)
 
 ## Done
+- [geonhee] Qwen(알리바바 클라우드) 2차 판정, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/19 — 무료 모델 `qwen-plus-character`, 로컬에서 실제 호출 시험·회귀 6/6. 배포본은 Vercel 환경변수를 넣기 전까지 규칙만 씀
+- [geonhee] 개선 PR D: 새 시험 세트에서 틀린 8개 고치기, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/18 — 배포본 15/23 → 21/23
 - [geonhee] 배포본 OCR 시간 초과 고치기, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/17 — 배포본에서 업로드 이미지 3초에 정확히 읽음, 회귀 6/6
 - [partner] 공개 대표 이미지와 첨부 스크린샷 OCR 추가, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/16 — 배포본에서 시간 초과로 동작하지 않아 `geonhee/ocr-vercel-fix`에서 고침
 - [geonhee] PR #14(partner) 조정해서 합치기, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/15
@@ -88,7 +89,7 @@
 - 2026-11-23 (PR D): 원문 대조 — 가장 잘 맞는 문장이 근거로 못 쓰는 문장이면 다음 문장(위쪽 8개까지)을 봄. 주어와 수치를 나눠 쓴 기사를 위해 이어진 두 문장도 한 덩어리로 봄(제목+첫 문장 조합은 제외). 그날 나온 기사는 "9월 7일"을 안 써도 같은 날로 봄. 반대 말 짝에 무죄↔유죄, 가결·통과↔부결, 합헌↔위헌 추가.
 - 2026-11-23 (PR D): 검색어 — 같은 단위 숫자가 둘이면 같이 넣음("38.9% 57.9%"), 큰 숫자는 기사 표기대로("2만4794명"), 재판 결과 주장은 "사람 + 사건 이름 + 심급 + 결과" 검색어를 따로 만듦. 같은 말 사전에 尹·李 등 추가.
 - 2026-11-23 (PR D, **geonhee 확인 필요**): 수치 없는 주장도 서로 다른 언론사 기사 2곳의 본문 한 문장에 주장 핵심어 70% 이상(최소 3개)이 있으면 "확인됨"으로 함. 2026-11-22 결정("여러 언론사 보도 = 확인됨"은 하지 않음)과 겹치는 부분이 있어 리뷰에서 정해야 함 — 기사에 "나왔다"만 보는 게 아니라 원문에서 같은 문장을 찾는 방식이라 SPEC 7-3("명시적 문장을 찾았을 때만")에는 맞음. 특검법 게시물이 이 규칙으로 맞음.
-- 2026-11-23: `next dev`가 AGENTS.md 끝에 Next.js 안내 블록을 자동으로 덧붙임. PR D에는 넣지 않음 (넣을지 따로 정하기).
+- 2026-11-23: `next dev`가 AGENTS.md 끝에 Next.js 안내 블록을 자동으로 덧붙임. PR D·Qwen PR에는 넣지 않음 (넣을지 따로 정하기). PR #18 머지 때 geonhee는 "Merge both"로 지시했고, 리뷰에서 물었던 "수치 없는 주장을 언론사 2곳 본문 문장으로 확인됨" 규칙은 그대로 유지됨.
 
 ## Open Questions
 - Qwen: `qwen-plus-character`는 원래 역할극 대화용 모델이라 팩트체크 품질이 max 모델보다 낮을 수 있음. 무료분(100만 토큰, 2027-02-22까지)을 다 쓰거나 기간이 지나면 멈춤 → 그때 유료 모델을 쓸지, 공개 주소의 사용 횟수 제한을 넣을지 정해야 함.
