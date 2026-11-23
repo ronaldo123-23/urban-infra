@@ -10,6 +10,7 @@
 - 금지: 인스타 로그인 우회, 비공식 스크래핑 라이브러리, 계정 쿠키 사용.
 - 판정 규칙 (SPEC 7-3, 7-4):
   - 기본은 AI 없는 **규칙 판정**이다 (Claude API는 유료라 쓰지 않기로 함). `lib/claims/rules.ts`가 주장을 고르고 `lib/verify/rules.ts`가 판정한다.
+  - (선택) 알리바바 클라우드 Qwen: `DASHSCOPE_API_KEY` + `QWEN_MODEL`이 있으면, 규칙이 "아직 확인 안 됨"으로 둔 주장 중 자료가 있는 것만 Qwen이 다시 본다 (`lib/verify/aiJudge.ts`). 규칙의 "확인됨"/"근거와 다름"은 바꾸지 않는다. AI가 낸 판정은 자료 번호 + 원문에 실제로 있는 인용문이 있어야 인정한다 (코드가 검사).
   - 캡션이 해당 게시물 자체의 내용이 거짓이라고 밝히거나 지어낸 이야기·실제로 일어나지 않은 일이라고 명시하면 추출 단계에서 작성자가 허구임을 밝힌 문장과 그 설명을 표시한다. 인용·질문·외부 주장의 반박은 제외한다. 이 표시는 캡션의 명시에 근거한다.
   - 주장 고르기: 캡션 전체를 훑어 수치·출처·날짜가 있는 문장부터 우선순위를 매긴다. 제목 조각·소개 문장("~소식입니다", "~했는데요")·같은 내용 반복은 "검증에서 뺀 문장"으로, 질문·의견·광고·조언은 "판단 대상 아님"으로 둔다. 검증은 5개씩, 남은 주장은 "나머지 주장 검증"으로 이어서 한다.
   - "아직 확인 안 됨"에는 보류 이유를 붙인다: `search_not_run`(검색 못 함), `no_results`(관련 자료 없음), `insufficient_match`(관련 자료는 있지만 근거 문장 없음).
@@ -46,8 +47,9 @@
 - Next.js (App Router) + TypeScript (strict), React
 - 패키지 매니저: npm (`package-lock.json` 커밋)
 - 배포: Vercel
-- 인스타 요청과 외부 API(Claude, 네이버, KOSIS) 호출은 반드시 서버(`app/api/...`)에서 한다. 브라우저에서 직접 요청하지 않는다 (CORS, 키 노출).
+- 인스타 요청과 외부 API(Claude, Qwen, 네이버, KOSIS) 호출은 반드시 서버(`app/api/...`)에서 한다. 브라우저에서 직접 요청하지 않는다 (CORS, 키 노출).
 - AI(선택, 기본 꺼짐): Claude API (`@anthropic-ai/sdk`), 모델 기본값 `claude-opus-5-5` (`ANTHROPIC_MODEL`로 변경 가능). 결과는 구조화 출력(zod 스키마)으로 받는다.
+- AI(선택, 기본 꺼짐): 알리바바 클라우드 Model Studio Qwen, OpenAI 호환 주소로 `fetch` 직접 호출 (추가 패키지 없음). 무료 토큰을 아끼려고 생각 끄기·답변 길이 제한·주장 묶어 1번 요청. 결과는 JSON으로 받아 zod로 검사한다.
 - 키가 없으면 해당 기능만 꺼지고 나머지는 동작해야 한다 (예: Claude 키가 없으면 관련 기사만 보여줌).
 - 비밀 값(토큰)은 `.env.local`과 Vercel 환경변수에만 둔다. 이름과 설명은 `.env.example`에 적는다.
 
@@ -58,9 +60,9 @@ app/api/extract/     POST /api/extract — 링크 → 추출 결과
 app/api/verify/      POST /api/verify — caption_clean → 주장별 판정
 components/          화면 컴포넌트 (클라이언트 컴포넌트는 "use client")
 lib/extract/         1단계: 링크 검사, oEmbed, 메타 태그, 캡션 정리, 결과 형식(types.ts)
-lib/ai/              (선택) Claude API 클라이언트 공통 설정
+lib/ai/              (선택) Claude API(claude.ts)·Qwen(qwen.ts) 공통 설정
 lib/claims/          주장 추출 — 규칙(rules.ts, 기본) / Claude(extract.ts, 선택)
-lib/verify/          근거 검색(naver.ts, kosis.ts, evidence.ts), 판정 — 규칙(rules.ts, 기본) / Claude(judge.ts, 선택), 결과 형식(types.ts)
+lib/verify/          근거 검색(naver.ts, kosis.ts, evidence.ts), 판정 — 규칙(rules.ts, 기본) / Claude(judge.ts, 선택) / Qwen 2차 판정(aiJudge.ts, 선택), 결과 형식(types.ts)
 public/icons/        PWA 아이콘
 docs/                기획서(SPEC.md), 시험 기록(phase1-test.md), 개선 계획, 시험 세트(test-sets/)
 scripts/             시험 세트 실행(verify-sample.mjs)

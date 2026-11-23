@@ -143,6 +143,7 @@ html, body {
 .badge-false { color: var(--color-verdict-false); }
 .badge-unverified { color: var(--color-verdict-unverified); }
 .badge-not_target { color: var(--color-verdict-not-target); }
+.badge-ai { color: var(--color-verdict-not-target); font-weight: 600; border-style: dashed; }
 
 .sources { margin: var(--space-1) 0 0; padding-left: var(--space-4); font-size: var(--text-sm); }
 .source { overflow-wrap: anywhere; margin-bottom: var(--space-1); }

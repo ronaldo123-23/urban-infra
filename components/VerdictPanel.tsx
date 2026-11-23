@@ -48,6 +48,7 @@ function ClaimCard({ c }: { c: ClaimResult }) {
   return (
     <li className="claim">
       <span className={`badge badge-${c.verdict}`}>{VERDICT_LABEL[c.verdict]}</span>
+      {c.judged_by === "ai" && c.verdict !== "not_target" && <span className="badge badge-ai">AI 판단</span>}
       <p className="label-sm">게시물의 주장</p>
       <p className="claim-text">“{c.claim}”</p>
       <p className="claim-reason">{c.reason}</p>
@@ -188,6 +189,9 @@ export default function VerdictPanel({ caption }: { caption: string }) {
           {data.mode === "rules" && (
             <p className="notice">
               자동 규칙으로 판정했어요. 원문(공식 안내·논문·기사)에서 같은 수치나 문장을 찾았을 때만 &quot;확인됨&quot;, 팩트체크 기사가 반박했거나 원문 수치가 다르면 &quot;근거와 다름&quot;으로 표시해요.
+              {data.ai &&
+                ` 규칙으로 확인하지 못한 주장 ${data.ai.claims}개는 AI(Qwen)가 찾은 자료를 읽고 다시 봤어요` +
+                  (data.ai.changed > 0 ? ` ("AI 판단" 표시 ${data.ai.changed}개).` : " (바뀐 판정 없음).")}
             </p>
           )}
           <p className="hint">결과가 틀릴 수 있어요. 공유하기 전에 근거 링크를 직접 열어 확인해 보세요.</p>

@@ -1,16 +1,19 @@
 // 판정 파이프라인: 주장 고르기 → (BATCH_SIZE개씩) 주장별 근거 검색(네이버 뉴스, KOSIS) → 판정 → 코드 검사.
 // 기본은 규칙(rules). ANTHROPIC_API_KEY가 있으면 Claude(llm)로 주장 추출·판정을 하고, 실패하면 규칙으로 돌아간다.
+// 규칙 판정일 때 DASHSCOPE_API_KEY + QWEN_MODEL이 있으면, 규칙이 보류한 주장 중 자료가 있는 것만 Qwen이 다시 본다 (lib/verify/aiJudge.ts).
 
 import { claudeConfigured, describeClaudeError } from "@/lib/ai/claude";
+import { qwenConfigured, qwenModel } from "@/lib/ai/qwen";
 import { extractClaims, type ExtractedClaim } from "@/lib/claims/extract";
 import { BATCH_SIZE, extractClaimsByRules } from "@/lib/claims/rules";
+import { judgeWithAi } from "./aiJudge";
 import { eventOf, gatherEvidence, type Evidence } from "./evidence";
 import { judgeClaims } from "./judge";
 import { kosisConfigured } from "./kosis";
 import { naverConfigured } from "./naver";
 import { judgeByRules } from "./rules";
 import { slotsOf } from "./slots";
-import type { ClaimResult, EvidenceQuote, HoldReason, SkippedSentence, Verdict, VerifyResponse } from "./types";
+import type { AiUsage, ClaimResult, EvidenceQuote, HoldReason, SkippedSentence, Verdict, VerifyResponse } from "./types";
 
 export * from "./types";
 
@@ -118,6 +121,30 @@ export async function verifyCaption(caption: string, offset = 0): Promise<Verify
     }
   }
 
+  // 3-1) AI 2차 판정 (Qwen): 규칙이 보류했지만 관련 자료가 있는 주장만, 한 번의 요청으로 묶어서
+  const aiJudged = new Set<ExtractedClaim>();
+  let ai: AiUsage | null = null;
+  if (mode === "rules" && qwenConfigured()) {
+    const pending = batch.filter((c) => judged.get(c)?.verdict === "unverified" && (evidence.get(c)?.sources.length ?? 0) > 0);
+    if (pending.length > 0) {
+      try {
+        const { results, usage } = await judgeWithAi(
+          pending.map((c) => ({ claim: c.text, slots: slots.get(c)!, sources: evidence.get(c)!.sources, texts: evidence.get(c)!.texts })),
+          today,
+        );
+        pending.forEach((c, i) => {
+          const r = results[i];
+          if (r.verdict === "unverified") return; // 규칙 결과(보류 이유·비교 설명)를 그대로 둔다
+          judged.set(c, { verdict: r.verdict, evidenceIds: r.evidenceIds, reason: r.reason, evidence: r.evidence, comparison: judged.get(c)?.comparison ?? [] });
+          aiJudged.add(c);
+        });
+        ai = { provider: "qwen", model: qwenModel(), claims: pending.length, changed: aiJudged.size, tokens: usage ? usage.prompt_tokens + usage.completion_tokens : null };
+      } catch (e) {
+        warnings.push(`AI(Qwen) 판정 실패 — 규칙 판정만 보여줘요 (${(e as Error).message}).`);
+      }
+    }
+  }
+
   // 4) 결과 조립 + 최종 검사: 근거 링크 없는 확인됨/거짓은 허용하지 않는다
   const checked: ClaimResult[] = batch.map((c) => {
     const ev = evidence.get(c);
@@ -137,6 +164,7 @@ export async function verifyCaption(caption: string, offset = 0): Promise<Verify
       hold_reason: hold,
       evidence: verdict === j.verdict ? (j.evidence ?? []).filter((e) => used.has(e.source_id)) : [],
       comparison: verdict === j.verdict ? (j.comparison ?? []) : [],
+      judged_by: mode === "llm" || aiJudged.has(c) ? "ai" : "rules",
     };
   });
 
@@ -153,11 +181,13 @@ export async function verifyCaption(caption: string, offset = 0): Promise<Verify
         hold_reason: null,
         evidence: [],
         comparison: [],
+        judged_by: mode === "llm" ? "ai" : "rules",
       }))
     : [];
 
   return {
     mode,
+    ai,
     claims: [...checked, ...notTargetResults],
     total_checkable: checkableAll.length,
     offset: start,
