@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "진짜일까?",
     start_url: "/",
     display: "standalone",
-    background_color: "#f6f7fb",
-    theme_color: "#2f5bea",
+    background_color: "#121212",
+    theme_color: "#121212",
     lang: "ko",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

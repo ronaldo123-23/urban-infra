@@ -10,12 +10,24 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#2f5bea",
+  // 기기 밝기 설정에 맞춘 주소창 색 (globals.css의 --bg와 같은 값)
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#121212" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
+      <head>
+        {/* 글꼴: Pretendard (한글·영문 한 벌). 못 불러와도 시스템 글꼴로 보인다 */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

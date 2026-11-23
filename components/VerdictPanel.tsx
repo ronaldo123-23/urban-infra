@@ -170,7 +170,7 @@ export default function VerdictPanel({ caption }: { caption: string }) {
             </ul>
           )}
           {remaining > 0 && (
-            <button className="button" type="button" onClick={() => run(nextOffset ?? 0)} disabled={loading}>
+            <button className="button button-secondary" type="button" onClick={() => run(nextOffset ?? 0)} disabled={loading}>
               {loading ? "확인하는 중…" : `나머지 주장 검증 (${remaining}개 남음)`}
             </button>
           )}

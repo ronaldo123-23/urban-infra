@@ -80,13 +80,20 @@ prototypes/jamkkan/  파트너의 별도 시제품 "잠깐!" (본 앱과 따로 
 - 새 의존성은 PROGRESS.md "Decisions"에 이유와 함께 적는다.
 
 ## 5. 디자인 토큰
-- 정의 위치: `app/globals.css`의 `:root` (다크 모드는 `prefers-color-scheme: dark`에서 같은 이름으로 다시 정의)
-- 색: `--color-bg` `--color-surface` `--color-text` `--color-muted` `--color-border` `--color-primary`(#2f5bea) `--color-primary-text` `--color-error-bg` `--color-error-text` `--color-notice-bg`
-- 판정 색: `--color-verdict-confirmed`(초록) `--color-verdict-false`(빨강) `--color-verdict-unverified`(노랑) `--color-verdict-not-target`(회색)
-- 글꼴: `--font-sans` (시스템 글꼴, 한글은 Apple SD Gothic Neo / Malgun Gothic / Noto Sans KR)
-- 글자 크기: `--text-sm` 0.875rem, `--text-md` 1rem, `--text-lg` 1.25rem, `--text-xl` 1.75rem
-- 간격: `--space-1` 4px, `--space-2` 8px, `--space-3` 12px, `--space-4` 16px, `--space-6` 24px
-- 모서리: `--radius` 12px. 버튼·입력칸 최소 높이: `--tap-min` 48px (모바일 터치)
+디자인 시스템: **Dark Minimal UI (Blue Accent)** (2026-11-23 적용). 어두운 바탕 + 회색 면 3단계 + 파란색 하나.
+- 정의 위치: `app/globals.css`의 `:root`. 기본은 어두운 화면, 기기가 밝은 모드면 `prefers-color-scheme: light`에서 같은 이름으로 다시 정의
+- 바탕·면: `--bg` #121212, `--surface-1` #1c1c1c (카드), `--surface-2` #242424 (입력칸·판정 카드·보조 버튼), `--surface-3` #2a2a2a (눌림·인용문). 깊이는 그림자·테두리 대신 면 밝기로
+- 선: `--border` `--border-strong` (입력칸 테두리) `--border-hover`
+- 글자: `--text-primary` #fff, `--text-secondary` #a7a7a7 (설명·메타), `--text-disabled` #6b6b6b
+- 강조: `--accent` #3d91ff (주 버튼·링크·포커스에만), `--accent-hover` `--accent-pressed`, `--on-accent` #0a0a0a (파란 바탕 위 글자는 흰색 금지)
+- 상태: `--error` `--warning` `--success`. 판정 색은 `--verdict-confirmed`(=success) `--verdict-false`(=error) `--verdict-unverified`(=warning) `--verdict-not-target`(=text-secondary)
+- 글꼴: `--font` Pretendard (CDN, `app/layout.tsx`) → 못 불러오면 시스템 글꼴. 굵기는 400·600·700만
+- 글자 크기: `--title-lg` 28px, `--title-md` 22px, `--title-sm` 18px, `--body` 16px, `--body-sm` 14px, `--caption` 12px (12px 아래 금지)
+- 간격: `--space-1` 4px · `-2` 8 · `-3` 12 · `-4` 16 · `-5` 20 · `-6` 24 · `-8` 32 · `-12` 48 (4px 단위)
+- 모서리: `--radius-sm` 4px, `--radius-md` 8px (카드·입력칸), `--radius-lg` 12px, `--radius-full` (버튼·알약)
+- 높이: `--tap-min` 44px (터치 최소), `--button-lg` 48px
+- 버튼: `.button` = 주 버튼(파란색), `.button button-secondary` = 보조(회색). 한 화면의 주 버튼은 되도록 하나
+- 판정 이름은 색 + 점 + 글자로 표시 (색만으로 구분하지 않음). 숫자·메타 정보를 배지로 감싸지 않음. 이모지 아이콘·그라데이션 금지
 - 화면 폭: 모바일 우선, 본문 최대 560px
 - 색이나 크기 값을 코드에 직접 쓰지 말고 토큰을 쓴다. 토큰을 추가·변경하면 이 절도 고친다.
 
