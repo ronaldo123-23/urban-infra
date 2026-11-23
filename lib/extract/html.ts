@@ -6,6 +6,17 @@ const NAMED: Record<string, string> = {
   gt: ">",
   quot: '"',
   apos: "'",
+  // 한국 언론사 기사 본문에 자주 나오는 기호 (근거 문장에 "&middot;"처럼 그대로 보이지 않게)
+  middot: "·",
+  lsquo: "‘",
+  rsquo: "’",
+  ldquo: "“",
+  rdquo: "”",
+  hellip: "…",
+  ndash: "–",
+  mdash: "—",
+  bull: "•",
+  rarr: "→",
   nbsp: " ",
 };
 

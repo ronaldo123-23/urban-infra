@@ -95,21 +95,58 @@ const SEARCH_UNIT_ORDER = ["조", "억", "만", "천", "%", "%p", "명", "원", 
  * ② 핵심어 3개 (숫자 없이)
  * ③ "팩트체크" + 핵심어 2개
  */
-export function newsQueries(words: string[], slots: ClaimSlots): { query: string; factcheck: boolean }[] {
+export function newsQueries(words: string[], slots: ClaimSlots, claim = ""): { query: string; factcheck: boolean }[] {
   const core = words.filter((w) => !/^\d/.test(w));
-  const num = [...slots.numbers]
+  const nums = [...slots.numbers]
     .filter((n) => SEARCH_UNIT_ORDER.includes(n.unit) && n.value !== 0)
-    .sort((a, b) => SEARCH_UNIT_ORDER.indexOf(a.unit) - SEARCH_UNIT_ORDER.indexOf(b.unit))[0];
+    .sort((a, b) => SEARCH_UNIT_ORDER.indexOf(a.unit) - SEARCH_UNIT_ORDER.indexOf(b.unit));
+  const num = nums[0];
+  // 같은 단위 숫자가 둘이면 함께 넣는다 ("긍정 38.9%·부정 57.9%" → 기사 제목에 둘 다 나오는 경우가 많음)
+  const second = nums.find((n) => n !== num && num && n.unit === num.unit);
   const qs: { query: string; factcheck: boolean }[] = [];
-  if (num && core.length > 0) qs.push({ query: [num.raw, ...core.slice(0, 2)].join(" "), factcheck: false });
+  if (num && core.length > 0) {
+    qs.push({ query: [...core.slice(0, second ? 1 : 2), searchNumber(num), ...(second ? [searchNumber(second)] : [])].join(" "), factcheck: false });
+  }
+  const trial = trialQuery(claim, core);
+  if (trial) qs.push({ query: trial, factcheck: false });
   if (core.length > 0) qs.push({ query: core.slice(0, 3).join(" "), factcheck: false });
   if (core.length > 0) qs.push({ query: `팩트체크 ${core.slice(0, 2).join(" ")}`, factcheck: true });
   const seen = new Set<string>();
   return qs.filter((q) => (seen.has(q.query) ? false : (seen.add(q.query), true)));
 }
 
-async function newsCandidates(words: string[], slots: ClaimSlots): Promise<Candidate[]> {
-  const queries = newsQueries(words, slots);
+/** 검색어용 숫자 표기: 기사가 쓰는 대로 "24794명" → "2만4794명" */
+function searchNumber(n: { value: number; unit: string; raw: string }): string {
+  if ((n.unit === "명" || n.unit === "원") && n.value >= 10000 && Number.isInteger(n.value)) {
+    const man = Math.floor(n.value / 10000);
+    const rest = n.value % 10000;
+    return `${man}만${rest ? rest : ""}${n.unit}`;
+  }
+  return n.raw.replace(/^-/, ""); // 검색어 앞의 "-"는 네이버에서 "이 단어 빼기"로 읽힌다
+}
+
+const TRIAL_RESULT_RE = /(무죄|유죄|징역|벌금|집행유예|공소기각|면소|선고유예)/;
+const TRIAL_STAGE_RE = /(1심|2심|항소심|상고심|대법원|파기환송)/;
+
+/**
+ * 재판 결과 주장용 검색어: 사람 이름 + 사건 이름(따옴표 안) 또는 혐의 + 심급 + 결과
+ * ("윤석열 호주 도피 1심 무죄"). 일반 검색어로는 같은 사람의 다른 재판 기사가 먼저 나온다.
+ */
+function trialQuery(claim: string, core: string[]): string | null {
+  const result = TRIAL_RESULT_RE.exec(claim)?.[1];
+  const stage = TRIAL_STAGE_RE.exec(claim)?.[1];
+  if (!result || !stage) return null;
+  const lastStage = [...claim.matchAll(new RegExp(TRIAL_STAGE_RE.source, "g"))].pop()![1].replace("항소심", "2심");
+  const person = /([가-힣]{2,4})\s*(?:전\s*)?(?:대통령|장관|총리|의원|대표|위원장|지사|시장|원장|청장)/.exec(claim)?.[1];
+  const quoted = /[‘“'"]([^’”'"]{2,20})[’”'"]/.exec(claim)?.[1]?.replace(/\s*의혹$/, "");
+  const charge = /([가-힣]{2,6})\s*혐의/.exec(claim)?.[1]?.replace(/(한|된|했던)$/, "");
+  const caseName = quoted ?? charge ?? core.find((w) => w !== person);
+  if (!caseName) return null;
+  return [person, caseName, lastStage, result].filter(Boolean).join(" ");
+}
+
+async function newsCandidates(words: string[], slots: ClaimSlots, claim: string): Promise<Candidate[]> {
+  const queries = newsQueries(words, slots, claim);
   const results = await Promise.all(queries.map((q) => searchNews(q.query, 10)));
   const fcUrls = new Set(results.flatMap((r, i) => (queries[i].factcheck ? r.map((x) => x.url) : [])));
   // 받아쓰기 묶음의 대표 기사는 팩트체크 기사가 되도록 팩트체크 검색 결과를 먼저 넣는다
@@ -207,7 +244,7 @@ export async function gatherEvidence(
   const jobs: Promise<void>[] = [];
   if (naverConfigured()) {
     jobs.push(
-      newsCandidates(words, req.slots)
+      newsCandidates(words, req.slots, req.claim)
         .then((c) => {
           newsSearched = true;
           candidates.push(...c);

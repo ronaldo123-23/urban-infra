@@ -2,7 +2,7 @@
 // 관문 2개(주제어, 대상 충돌) → 100점 점수(주제어 40·수치 20·출처 15·대상 15·시점 10) → 3등급.
 
 import { CONFLICT_AXES, UNIT_ALIASES, expand } from "./lexicon";
-import { extractNumbers, type ClaimSlots, type NumberSlot } from "./slots";
+import { extractNumbers, normalizeNumbers, type ClaimSlots, type NumberSlot } from "./slots";
 
 export type RelevanceGrade = "direct" | "related" | "irrelevant";
 
@@ -51,10 +51,12 @@ function unitPattern(unit: string): string {
 
 /** 같은 숫자·단위가 있는지. %는 두 비율의 차이(%포인트)는 명시된 경우만 인정 */
 export function numberIn(rawText: string, n: NumberSlot): { hit: boolean; derived: string | null } {
-  const text = rawText.replace(/(\d),(?=\d{3}(?!\d))/g, "$1"); // "6,515조" → "6515조"
+  const text = normalizeNumbers(rawText).replace(/(\d),(?=\d{3}(?!\d))/g, "$1"); // "6,515조" → "6515조"
   const v = String(n.value).replace(".", "[.,]");
   const percentBoundary = n.unit === "%" ? "(?!\\s*(?:포인트|points?)|p\\b)" : "";
-  const exact = new RegExp(`(^|[^\\d.,])${v}\\s*${unitPattern(n.unit)}${percentBoundary}(?![a-z])`, "i");
+  // 마이너스 수치("성장률 -0.2%p")는 원문에도 마이너스가 있어야 같은 수치로 본다 (2~3처럼 범위의 "-"는 제외)
+  const sign = n.negative ? "(?:-|−|마이너스\\s*)" : "";
+  const exact = new RegExp(`(^|[^\\d.,])${sign}${v}\\s*${unitPattern(n.unit)}${percentBoundary}(?![a-z])`, "i");
   if (exact.test(text)) return { hit: true, derived: null };
   if (n.unit === "%p") {
     for (const sentence of splitSentencesLoose(text)) {

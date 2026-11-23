@@ -44,24 +44,38 @@ const SOURCE_RE =
 const STAT_RE = /\d[\d,.]*\s*(%|％|퍼센트|명|원|배|만|억|조|건|세|가구|곳)/;
 
 const PARTICLES = [
-  "으로부터", "에서부터", "이라고", "이라는", "에서는", "으로는", "까지", "부터", "에서", "에게", "으로", "이라",
+  "으로부터", "에서부터", "에서도", "이라고", "이라는", "에서는", "으로는", "에게는", "에는", "에도", "까지", "부터", "에서", "에게", "으로", "이라",
   "처럼", "보다", "라고", "라는", "하고", "이나", "은", "는", "이", "가", "을", "를", "에", "의", "도", "로", "와", "과", "만",
 ];
 // 긴 어미부터 (전해 들은 말투 "~한다고/~한대요" 포함)
 const ENDINGS =
-  /(한답니다|된답니다|했답니다|한다고요|된다고요|한다고|된다고|했다고|이라고요|이래요|한대요|된대요|했대요|한대|된대|했대|했습니다|합니다|됩니다|입니다|습니다|됐으며|했으며|됐다는|했다는|됐고|했고|되고|했다|한다|된다|이다|였다|이었다|하는|했던|하며|하고|해서|되어|됐다|다고|된|할|한)$/;
+  /(았는데요|었는데요|했는데요|는데요|한답니다|된답니다|했답니다|한다고요|된다고요|한다고|된다고|했다고|이라고요|이래요|한대요|된대요|했대요|한대|된대|했대|했습니다|합니다|됩니다|입니다|습니다|됐으며|했으며|됐다는|했다는|됐고|했고|되고|했다|한다|된다|이다|였다|이었다|하는|했던|하며|하고|해서|되어|됐다|다고|된|할|한)$/;
 const STOP = new Set([
   "그리고", "하지만", "그러나", "그런데", "또한", "특히", "실제로", "이미", "이번", "지금", "정말", "진짜", "너무", "모두",
   "우리", "여러분", "오늘", "이제", "바로", "통해", "대한", "위해", "있는", "없는", "있다", "없다", "것으로", "것이", "등을",
   "합니다", "한다", "했다", "된다", "있습니다", "없습니다", "같습니다", "말했다", "밝혔다", "전했다", "알려졌다",
   "경우", "대상", "그룹", "사례", "결과", "정도", "이상", "이하", "그렇지", "않은", "같은", "어떤", "모든", "가장",
   "실제", "나타났", "이어지", "보고", "진행되며", "추가적인", "통해", "때문", "자체", "하면", "되면", "이면", "있어",
-  "무려", "고작", "공교롭게도", "결국", "고스란히", "도대체", "최근", "관련", "따르", "따르면", "우리나라", "가운데", "전망",
+  "관련해", "이른바", "해당", "공개된", "기준", "나타나", "무려", "고작", "공교롭게도", "결국", "고스란히", "도대체", "최근", "관련", "따르", "따르면", "우리나라", "가운데", "전망",
   "늘린", "늘어난", "기록", "경신", "돌파", "발표된", "자료", "공교롭게", "다시", "나타났다", "더욱", "불과", "하지",
 ]);
 
 // 한 글자지만 핵심인 명사 (조사를 떼고 남으면 핵심어로 쓴다)
 const ONE_CHAR_KEEP = new Set(["금", "빚", "돈", "쌀", "집", "땅", "술", "약", "물", "불"]);
+
+// 받침 있는 글자 뒤에만 오는 조사 / 받침 없는 글자 뒤에만 오는 조사 ("책이·책은" vs "회사가·회사는")
+const AFTER_BATCHIM = new Set(["이", "은", "을", "과", "으로", "이라", "이나", "이라고", "이라는", "으로는", "으로부터"]);
+const AFTER_VOWEL = new Set(["가", "는", "를", "와", "라고", "라는"]);
+
+function particleFits(rest: string, particle: string): boolean {
+  const code = rest.charCodeAt(rest.length - 1);
+  if (code < 0xac00 || code > 0xd7a3) return true; // 한글이 아니면(숫자·영문) 따지지 않는다
+  const batchim = (code - 0xac00) % 28;
+  if (AFTER_BATCHIM.has(particle)) return batchim !== 0;
+  if (AFTER_VOWEL.has(particle)) return batchim === 0;
+  if (particle === "로") return batchim === 0 || batchim === 8; // 받침 없음 또는 ㄹ ("서울로")
+  return true;
+}
 
 function stripWord(w: string): string {
   let s = w.replace(/[^\p{L}\p{N}%~.-]/gu, "").replace(/^[.~-]+|[.~-]+$/g, ""); // 소수점·범위(14~34)는 남김
@@ -70,6 +84,7 @@ function stripWord(w: string): string {
     if (s.length > p.length && s.endsWith(p)) {
       const rest = s.slice(0, -p.length);
       if (p === "만" && /\d$/.test(rest)) break; // "23만"의 만은 숫자 단위
+      if (!particleFits(rest, p)) continue; // "조원씨앤아이"의 "이"는 조사가 아님
       s = rest;
       break;
     }
@@ -105,13 +120,42 @@ export function keywordsOf(sentence: string, max = 5): string[] {
 // 따옴표·괄호 짝 (여는 기호 → 닫는 기호)
 const PAIRS: Record<string, string> = { "“": "”", "‘": "’", '"': '"', "'": "'", "(": ")", "「": "」", "『": "』", "《": "》", "<": ">" };
 
+const BULLET_RE = /^[•·▶►✔✅📌\-*]|^\d+[.)]\s/u;
+
+/**
+ * 줄바꿈 정리: 한 문단(빈 줄 없이 이어진 줄들) 안에 "~습니다." 같은 완결 문장이 있으면
+ * 화면 폭에 맞춰 줄을 바꾼 글로 보고, 문장 중간에서 끊긴 줄을 다음 줄과 이어 붙인다
+ * ("원천징수율을 기존 3.3%에서 2.2%로 / 낮추기로 했습니다.").
+ * 이어 붙이지 않는 경우: 완결 문장이 하나도 없는 문단(카드뉴스 요약 줄), 서술어·문장부호로 끝난 줄("돌았죠,"),
+ * 글머리표 줄("• …"), 짧은 소제목 줄("청원 내용은").
+ */
+function joinWrappedLines(text: string): string[] {
+  const lines: string[] = [];
+  for (const para of text.split(/\n\s*\n/)) {
+    const rows = para.split("\n").map((l) => l.trim()).filter(Boolean);
+    const wrapped = rows.some((l) => /(다|요|죠)[.!]["”'’)]*$/.test(l));
+    let buf = "";
+    for (const row of rows) {
+      if (buf && wrapped && !BULLET_RE.test(row) && !BULLET_RE.test(buf) && buf.length >= 15 &&
+          !/[.!?…。"”'’)]$/.test(buf) && !SENTENCE_END_RE.test(buf.replace(/[,，]$/, ""))) {
+        buf = `${buf} ${row}`;
+        continue;
+      }
+      if (buf) lines.push(buf);
+      buf = row;
+    }
+    if (buf) lines.push(buf);
+  }
+  return lines;
+}
+
 /**
  * 문장 나누기. 따옴표·괄호 안의 마침표·물음표·말줄임표에서는 자르지 않는다
  * ("도대체 그 많은 돈이 다 어디로 간 거냐", "결국…" 같은 인용이 조각나지 않게).
  */
 export function splitIntoSentences(text: string): string[] {
   const out: string[] = [];
-  for (const line of text.split(/\n+/)) {
+  for (const line of joinWrappedLines(text)) {
     let buf = "";
     let open: string | null = null;
     for (let i = 0; i < line.length; i++) {
@@ -175,7 +219,9 @@ export function extractClaimsByRules(caption: string): RuleClaims {
       notTargets.push(notTarget(s, "의견·감상이나 광고·행동 요청 문구예요."));
       return;
     }
-    if (!SENTENCE_END_RE.test(s) || /[,，]\s*$/.test(s)) {
+    // 카드뉴스 요약 줄("가계 주식 손실 약 563조 원 (추정)")은 서술어가 없어도 수치 주장으로 본다
+    const statLine = STAT_RE.test(s) && words.length >= 3 && order > 0;
+    if ((!SENTENCE_END_RE.test(s) && !statLine) || /[,，]\s*$/.test(s)) {
       skipped.push({ text: s, reason: "제목 조각 (완결된 문장이 아님)" });
       return;
     }
@@ -185,8 +231,14 @@ export function extractClaimsByRules(caption: string): RuleClaims {
     }
     const dup = candidates.find((c) => overlapRatio(c.words, words) >= 0.7);
     if (dup) {
-      skipped.push({ text: s, reason: "앞 문장과 같은 내용 반복" });
-      return;
+      // 제목·요약 줄과 본문 문장이 겹치면 더 자세한(긴) 본문 문장을 남긴다
+      if (s.length > dup.claim.text.length * 1.5 && priorityOf(s) >= dup.priority) {
+        skipped.push({ text: dup.claim.text, reason: "뒤 문장과 같은 내용 반복" });
+        candidates.splice(candidates.indexOf(dup), 1);
+      } else {
+        skipped.push({ text: s, reason: "앞 문장과 같은 내용 반복" });
+        return;
+      }
     }
 
     const isStat = STAT_RE.test(s);
