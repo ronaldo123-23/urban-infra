@@ -7,11 +7,12 @@
 ## In Progress
 - [partner] 1단계 시험: 공개 게시물 20개로 추출 결과 기록 (`docs/phase1-test.md`) — 1/20 기록됨 (geonhee가 1개 시험)
 - [geonhee] KOSIS 키 받아서 통계 대조 시험 (코드는 2단계 PR에 들어 있음, 실제 키로 응답 형식 확인 전)
-- [geonhee] PR #14(partner) 조정해서 합치기, `geonhee/evidence-and-reading-fix`
+- [geonhee] 배포본 OCR 시간 초과 고치기, `geonhee/ocr-vercel-fix`
 - [geonhee] 개선 PR D (제안): 새 시험 세트에서 틀린 8개 원인 고치기 — 아래 Open Questions 참고
 
 ## Done
-- [geonhee] 공개 대표 이미지와 첨부 스크린샷 OCR 추가, 2026-11-23, geonhee/image-ocr 검토용 브랜치.
+- [partner] 공개 대표 이미지와 첨부 스크린샷 OCR 추가, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/16 — 배포본에서 시간 초과로 동작하지 않아 `geonhee/ocr-vercel-fix`에서 고침
+- [geonhee] PR #14(partner) 조정해서 합치기, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/15
 - [partner] 읽기 상태·수치 단위·행사 문맥·근거 표시 개선, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/14 — geonhee 지시로 3가지 조정 후 합침 (아래 Decisions 2026-11-23)
 - [geonhee] 파트너 브랜치 2개 합치기 (`article-context`: 충돌은 main 유지, `bilingual-evidence-search`: `prototypes/jamkkan/`으로), 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/13
 - [partner] ‘거짓’이라는 단어 없이도 현재 게시물의 내용을 지어냈거나 실제로 일어나지 않았다고 밝힌 문구를 인식, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/12
@@ -76,6 +77,8 @@
   2. 팩트체크 반박: PR #14는 본문을 읽은 기사만 인정했는데, 본문을 못 읽어도 **제목**에 팩트체크 표시 + 반박 표현이 있으면 인정 (스타벅스 소문 회복).
   3. 도미노피자 행사 페이지가 `evidence.ts`에 직접 들어가 있던 것을 `lexicon.ts`의 `OFFICIAL_EVENT_PAGES` 목록으로 옮기고, 행사 이름 패턴도 "숫자+이름+어택/데이/위크/페스타/세일"로 넓힘.
   조정 후 성적 15/23 (main과 같음, 바뀐 항목 없음). PR #14의 화면 문구("캡션을 읽었어요", "이미지·영상 속 글자와 음성은 읽지 않아요"), %·%포인트 구분, 조건 대조, 웹페이지 글자 인코딩 처리는 그대로 살림.
+- 2026-11-23: PR #16(partner, OCR)도 geonhee 지시로 Claude가 머지함. 로컬에선 1초에 읽었지만 배포본에선 모든 OCR 요청이 30초 제한에 걸림. 원인: OCR 작업자 스레드가 불러오는 `wasm-feature-detect`·`zlibjs`·`bmp-js`가 Next.js 배포 파일 추적에서 빠져 Vercel에 올라가지 않음 → 작업자가 시작하자마자 죽는데 tesseract.js가 그 오류를 알려 주지 않아 멈춘 채 기다림. `next.config.ts`의 `outputFileTracingIncludes`에 작업자가 쓰는 패키지를 모두 넣어 고침.
+- 2026-11-23: OCR 품질 — 글자가 깔끔한 스크린샷은 잘 읽지만(시험 이미지 거의 정확), 인스타 대표 이미지(640px 미리보기, 꾸민 글꼴)는 대부분 깨져서 "확인 필요"로 나옴. 사용자가 고친 뒤에만 판정하므로 잘못된 판정으로 바로 이어지진 않음.
 
 ## Open Questions
 - "잠깐!"의 좋은 기능(무료 번역 API로 영어 검색, 세계은행 통계)을 본 앱으로 옮길까? 옮길 때 네이버 검색 결과 웹페이지 직접 읽기(`search.naver.com`)는 공식 API로 바꿔야 함 (기획서의 비공식 스크래핑 금지).
