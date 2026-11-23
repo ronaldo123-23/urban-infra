@@ -28,14 +28,16 @@ const MAX_SOURCES = 4;
 const MAX_EXCERPT = 700; // 자료 하나에서 보여줄 글자 수
 const KIND_LABEL: Record<Source["kind"], string> = { news: "뉴스", paper: "논문 초록", official: "공식 안내", web: "공식 웹문서", kosis: "KOSIS 통계" };
 
+// 모델이 형식을 조금씩 다르게 줄 때가 있어 너그럽게 읽는다 ("1"처럼 문자열 번호, 대소문자, 빠진 reason).
+// 판정 단어가 셋 중 하나가 아니면 그 주장만 보류로 본다.
 const ResultSchema = z.object({
   results: z.array(
     z.object({
-      claim_index: z.number().int(),
-      verdict: z.enum(["confirmed", "false", "unverified"]),
-      evidence_id: z.string().nullable().optional(),
-      quote: z.string().nullable().optional(),
-      reason: z.string(),
+      claim_index: z.coerce.number().int(),
+      verdict: z.preprocess((v) => (typeof v === "string" ? v.trim().toLowerCase() : v), z.enum(["confirmed", "false", "unverified"]).catch("unverified")),
+      evidence_id: z.preprocess((v) => (v == null ? null : String(v).trim()), z.string().nullable()).optional(),
+      quote: z.preprocess((v) => (v == null ? null : String(v)), z.string().nullable()).optional(),
+      reason: z.preprocess((v) => (v == null ? "" : String(v)), z.string()),
     }),
   ),
 });
@@ -106,19 +108,27 @@ export async function judgeWithAi(
     .join("\n\n");
 
   const { json, usage } = await qwenJson(SYSTEM, `오늘 날짜: ${today}\n\n<claims>\n${body}\n</claims>`, 300 * inputs.length + 200);
-  const parsed = ResultSchema.safeParse(json);
-  if (!parsed.success) throw new Error("AI 판정 결과 형식이 맞지 않음");
+  // {"results":[…]} 대신 배열만 주거나 {"result":[…]}로 줄 때도 읽는다
+  const obj = json as Record<string, unknown> | unknown[];
+  const shaped = Array.isArray(obj) ? { results: obj } : obj && !("results" in obj) && Array.isArray(obj.result) ? { results: obj.result } : obj;
+  const parsed = ResultSchema.safeParse(shaped);
+  if (!parsed.success) {
+    console.warn("ai judge: unexpected shape", JSON.stringify(json).slice(0, 800), parsed.error.issues.slice(0, 3));
+    throw new Error("AI 판정 결과 형식이 맞지 않음");
+  }
 
   const results = inputs.map((input, i): AiJudgement => {
     const r = parsed.data.results.find((x) => x.claim_index === i + 1);
     const hold: AiJudgement = { verdict: "unverified", evidenceIds: [], reason: r?.reason.trim() ?? "", evidence: [] };
     if (!r || r.verdict === "unverified") return hold;
-    // 코드 검사: 준 자료 번호인지, 인용문이 그 자료(발췌·제목·요약·본문)에 그대로 있는지
+    // 코드 검사: 준 자료 번호인지, 인용문이 그 자료의 원문(본문, 없으면 요약)에 그대로 있는지.
+    // 발췌는 떨어진 문장을 " … "로 이어 붙인 것이라, 발췌와 비교하면 서로 다른 문장을 붙인 인용이 통과한다.
+    // 제목만 인용한 것은 근거로 쓰지 않는다 (제목은 줄여 쓰거나 과장한 경우가 많음)
     const src = picked[i].find((p) => p.s.id === r.evidence_id);
     const quote = r.quote?.trim() ?? "";
     if (!src || normalize(quote).length < 10) return { ...hold, reason: "" };
-    const haystack = normalize(`${src.s.title} ${src.s.snippet} ${src.excerpt} ${input.texts.get(src.s.id) ?? ""}`);
-    if (!haystack.includes(normalize(quote))) return { ...hold, reason: "" };
+    const original = normalize(input.texts.get(src.s.id) ?? src.s.snippet);
+    if (!original.includes(normalize(quote)) || normalize(src.s.title).includes(normalize(quote))) return { ...hold, reason: "" };
     // 인용문이 주장과 같은 이야기인지 코드로 한 번 더 본다:
     // 확인됨은 주장 핵심어 절반 이상(최소 2개) + 수치 주장이면 수치 하나 이상, 근거와 다름은 핵심어 2개 이상
     const topicHits = input.slots.topics.filter((t) => hasTopic(quote, t)).length;
