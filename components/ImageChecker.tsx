@@ -119,7 +119,7 @@ export default function ImageChecker({ postUrl, caption }: { postUrl?: string; c
         {imageText && <>
           <p className="hint">틀리게 읽힌 글자와 숫자를 수정해 주세요. 캡션을 읽은 경우 함께 검증해요.</p>
           {combined.length > 5000 && <p className="notice">캡션과 이미지 글을 합쳐 5,000자 이하로 줄여 주세요.</p>}
-          <button className="button" type="button" disabled={uploading || combined.length > 5000}
+          <button className="button button-secondary" type="button" disabled={uploading || combined.length > 5000}
             onClick={() => setConfirmedText(combined)}>이 글로 검증 준비</button>
         </>}
       </section>

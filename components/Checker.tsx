@@ -165,7 +165,7 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
             onChange={(e) => setManual(e.target.value)}
             placeholder="캡션을 붙여넣어 주세요"
           />
-          <button className="button" type="submit" disabled={loading || !manual.trim()}>
+          <button className="button button-secondary" type="submit" disabled={loading || !manual.trim()}>
             {loading ? "정리 중…" : "이 글로 확인하기"}
           </button>
         </form>
