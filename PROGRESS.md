@@ -11,6 +11,7 @@
 - [geonhee] 개선 PR D (제안): 새 시험 세트에서 틀린 8개 원인 고치기 — 아래 Open Questions 참고
 
 ## Done
+- [geonhee] 공개 대표 이미지와 첨부 스크린샷 OCR 추가, 2026-11-23, geonhee/image-ocr 검토용 브랜치.
 - [partner] 읽기 상태·수치 단위·행사 문맥·근거 표시 개선, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/14 — geonhee 지시로 3가지 조정 후 합침 (아래 Decisions 2026-11-23)
 - [geonhee] 파트너 브랜치 2개 합치기 (`article-context`: 충돌은 main 유지, `bilingual-evidence-search`: `prototypes/jamkkan/`으로), 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/13
 - [partner] ‘거짓’이라는 단어 없이도 현재 게시물의 내용을 지어냈거나 실제로 일어나지 않았다고 밝힌 문구를 인식, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/12
@@ -28,6 +29,7 @@
 - [geonhee] 개선 PR C: 판정 정확도 + 시험 세트 6개, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/9 — 배포본 6/6
 
 ## Decisions
+- 2026-11-23: 이미지 OCR에 Tesseract.js(한글·영어)와 이미지 크기 검사에 image-size를 사용한다. 공개 대표 이미지 한 장과 사용자가 첨부한 슬라이드를 지원하며 이미지를 저장하지 않는다.
 - 2026-11-22: 저장소 이름은 `urban-infra`(Public)로 정함. GitHub 저장소 이름에 한글을 쓸 수 없어서, 한글 이름 "도시인프라"는 설명과 README에 씀.
 - 2026-11-22: 프로젝트 규칙은 AGENTS.md 한 곳에서만 관리함. CLAUDE.md는 AGENTS.md를 가리키기만 함.
 - 2026-11-22: 파트너 `ronaldo123-23`을 저장소 공동 작업자(write 권한)로 추가함.
