@@ -55,6 +55,8 @@ export interface ClaimResult {
   evidence: EvidenceQuote[];
   /** 비교 설명 (예: "원문은 52% 대 34%로 18%포인트 차이예요", 불확실성) */
   comparison: string[];
+  /** 누가 판정했나: rules=규칙, ai=AI (Qwen 2차 판정 또는 Claude) */
+  judged_by: "rules" | "ai";
 }
 
 /**
@@ -62,6 +64,18 @@ export interface ClaimResult {
  * insufficient_match=관련 자료는 있지만 주장을 확인할 근거를 못 찾음
  */
 export type HoldReason = "search_not_run" | "no_results" | "insufficient_match";
+
+/** AI 2차 판정 기록 (화면 안내·사용량 확인용) */
+export interface AiUsage {
+  provider: "qwen";
+  model: string;
+  /** AI에게 보낸 주장 수 */
+  claims: number;
+  /** AI 판단으로 "아직 확인 안 됨"에서 바뀐 주장 수 */
+  changed: number;
+  /** 이번 요청에 쓴 토큰 (입력+출력). 모르면 null */
+  tokens: number | null;
+}
 
 export interface SkippedSentence {
   text: string;
@@ -71,6 +85,8 @@ export interface SkippedSentence {
 export interface VerifyResponse {
   /** rules=규칙으로 주장 추출·판정 (기본), llm=Claude가 주장 추출·판정 (ANTHROPIC_API_KEY가 있을 때) */
   mode: "rules" | "llm";
+  /** 규칙 판정 뒤 AI(Qwen) 2차 판정을 했으면 그 기록. 안 했으면 null */
+  ai: AiUsage | null;
   /** 이번에 검증한 주장 (+ 첫 묶음에는 판단 대상 아님 문장) */
   claims: ClaimResult[];
   /** 검증할 주장 전체 개수 (판단 대상 아님 제외) */
