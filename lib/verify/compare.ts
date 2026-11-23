@@ -13,6 +13,8 @@ export interface SentenceMatch {
   otherNumbers: string[];
   /** %포인트 차이로 맞춘 경우 "52% 대 34%" */
   derived: string | null;
+  /** 이어진 두 문장을 합친 것인지 */
+  joined?: boolean;
 }
 
 const MAX_QUOTE = 300;
@@ -34,9 +36,21 @@ export function quoteOf(sentence: string): string {
 
 /** 원문에서 주장과 가장 많이 겹치는 문장 (주제어 2개 이상인 문장만) */
 export function bestSentence(slots: ClaimSlots, text: string): SentenceMatch | null {
-  let best: SentenceMatch | null = null;
-  let bestScore = 0;
-  for (const sentence of splitSentencesLoose(text)) {
+  return rankedSentences(slots, text)[0] ?? null;
+}
+
+/**
+ * 원문 문장을 주장과 겹치는 정도 순으로 (주제어 2개 이상인 문장만, 점수가 같으면 앞 문장 먼저).
+ * 가장 좋은 문장이 근거로 쓸 수 없는 문장(물음표·반박 인용 등)이면 다음 문장을 보려고.
+ */
+export function rankedSentences(slots: ClaimSlots, text: string): SentenceMatch[] {
+  const ranked: { m: SentenceMatch; score: number }[] = [];
+  const singles = splitSentencesLoose(text);
+  // 이어진 두 문장도 하나로 본다 (기사는 "정부는 3%에서 2%로 낮추기로 했다. 지방소득세까지 포함하면 3.3%에서 2.2%로…"처럼
+  // 주어와 수치를 나눠 쓰는 경우가 많다). 같은 점수면 한 문장을 먼저.
+  const pairs = singles.slice(1).map((s, i) => `${singles[i]} ${s}`);
+  for (const [k, sentence] of [...singles, ...pairs].entries()) {
+    const joined = k >= singles.length;
     if (sentence.length > 600) continue; // 메뉴·목록이 한 줄로 붙은 것
     const topicHits = slots.topics.filter((t) => hasTopic(sentence, t));
     if (topicHits.length < 2) continue;
@@ -57,13 +71,11 @@ export function bestSentence(slots: ClaimSlots, text: string): SentenceMatch | n
     const otherNumbers = extractNumbers(sentence)
       .filter((x) => claimUnits.has(x.unit) && !slots.numbers.some((n) => n.value === x.value))
       .map((x) => x.raw);
-    const score = topicHits.length + numberHits.length * 3 + (derived ? 3 : 0);
-    if (score > bestScore) {
-      bestScore = score;
-      best = { sentence, topicHits, numberHits, otherNumbers, derived };
-    }
+    const score = topicHits.length + numberHits.length * 3 + (derived ? 3 : 0) - (joined ? 0.5 : 0);
+    ranked.push({ m: { sentence, topicHits, numberHits, otherNumbers, derived, joined }, score });
   }
-  return best;
+  // sort는 안정 정렬이라 점수가 같으면 원문 순서가 유지된다
+  return ranked.sort((a, b) => b.score - a.score).map((x) => x.m);
 }
 
 /** 비교 설명: %포인트 차이, 신뢰구간(불확실성), 전·중·후 조건 */
