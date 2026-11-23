@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ExtractAttempt, ExtractResponse } from "@/lib/extract/types";
 import VerdictPanel from "./VerdictPanel";
+import ImageChecker from "./ImageChecker";
 
 const METHOD_LABEL: Record<string, string> = {
   oembed: "Meta 공식 oEmbed",
@@ -99,7 +100,7 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
       {data && r && (
         <section className="card" aria-live="polite">
           <h2 className="section-title">{r.caption_clean ? (r.method === "manual" ? "붙여넣은 글을 읽었어요" : "캡션을 읽었어요") : "읽을 캡션을 확보하지 못했어요"}</h2>
-          <p className="hint">이미지·영상 속 글자와 음성은 읽지 않아요.</p>
+          <p className="hint">캡션과 이미지에서 읽은 글은 따로 보여줘요. 영상 음성은 읽지 않아요.</p>
 
           {data.false_disclosure && (
             <div className="notice notice-error">
@@ -170,6 +171,8 @@ export default function Checker({ initialUrl, autoStart }: { initialUrl: string;
         </form>
       )}
 
+      <ImageChecker key={r?.url ?? "image-only"} postUrl={data?.post_type === "post" ? r?.url : undefined}
+        caption={data?.false_disclosure ? null : r?.caption_clean} />
       {r?.caption_clean && !data?.false_disclosure ? <VerdictPanel key={r.fetched_at} caption={r.caption_clean} /> : null}
     </div>
   );
