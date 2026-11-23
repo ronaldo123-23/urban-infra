@@ -10,11 +10,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // 기기 밝기 설정에 맞춘 주소창 색 (globals.css의 --bg와 같은 값)
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#121212" },
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-  ],
+  themeColor: "#121212", // 주소창 색 = globals.css의 --bg (항상 어두운 화면)
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

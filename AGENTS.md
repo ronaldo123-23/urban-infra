@@ -81,7 +81,7 @@ prototypes/jamkkan/  파트너의 별도 시제품 "잠깐!" (본 앱과 따로 
 
 ## 5. 디자인 토큰
 디자인 시스템: **Dark Minimal UI (Blue Accent)** (2026-11-23 적용). 어두운 바탕 + 회색 면 3단계 + 파란색 하나.
-- 정의 위치: `app/globals.css`의 `:root`. 기본은 어두운 화면, 기기가 밝은 모드면 `prefers-color-scheme: light`에서 같은 이름으로 다시 정의
+- 정의 위치: `app/globals.css`의 `:root`. 항상 어두운 화면 (기기 설정 무시). 밝은 화면 값은 `:root[data-theme="light"]`에 준비만 해 둠
 - 바탕·면: `--bg` #121212, `--surface-1` #1c1c1c (카드), `--surface-2` #242424 (입력칸·판정 카드·보조 버튼), `--surface-3` #2a2a2a (눌림·인용문). 깊이는 그림자·테두리 대신 면 밝기로
 - 선: `--border` `--border-strong` (입력칸 테두리) `--border-hover`
 - 글자: `--text-primary` #fff, `--text-secondary` #a7a7a7 (설명·메타), `--text-disabled` #6b6b6b
