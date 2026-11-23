@@ -10,6 +10,7 @@
 - [geonhee] 배포본에서 Qwen 켜기 — 2026-11-23 Vercel 환경변수 3개(Production만) 저장함. 화면의 Redeploy가 동작하지 않아 이 PR 머지로 새로 배포해서 적용
 
 ## Done
+- [partner] 공개 대표 이미지와 스크린샷을 Qwen으로 분석, 2026-11-23, `partner/qwen-image-analysis` — 실제 계정 호출은 `QWEN_VISION_MODEL` 설정 후 확인
 - [geonhee] 디자인 시스템 적용 (Dark Minimal UI, Blue Accent), 2026-11-23, `geonhee/dark-ui` — 미리보기에서 글 읽기·판정·나머지 주장 검증 동작 확인, 휴대폰 폭 확인
 - [geonhee] Qwen(알리바바 클라우드) 2차 판정, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/19 — 무료 모델 `qwen-plus-character`, 로컬에서 실제 호출 시험·회귀 6/6. 배포본은 Vercel 환경변수를 넣기 전까지 규칙만 씀
 - [geonhee] 개선 PR D: 새 시험 세트에서 틀린 8개 고치기, 2026-11-23, https://github.com/sten5891-code/urban-infra/pull/18 — 배포본 15/23 → 21/23
@@ -33,6 +34,7 @@
 - [geonhee] 개선 PR C: 판정 정확도 + 시험 세트 6개, 2026-11-22, https://github.com/sten5891-code/urban-infra/pull/9 — 배포본 6/6
 
 ## Decisions
+- 2026-11-23: Tesseract를 제거하고 Qwen 이미지 모델 단독으로 글자와 시각 정보를 읽는다. `image-size`는 파일 형식·해상도 검사에 사용한다. `QWEN_VISION_MODEL`은 텍스트 판정 모델과 별개이며 무료 사용량과 초과 차단을 확인하고 설정한다.
 - 2026-11-23: 이미지 OCR에 Tesseract.js(한글·영어)와 이미지 크기 검사에 image-size를 사용한다. 공개 대표 이미지 한 장과 사용자가 첨부한 슬라이드를 지원하며 이미지를 저장하지 않는다.
 - 2026-11-22: 저장소 이름은 `urban-infra`(Public)로 정함. GitHub 저장소 이름에 한글을 쓸 수 없어서, 한글 이름 "도시인프라"는 설명과 README에 씀.
 - 2026-11-22: 프로젝트 규칙은 AGENTS.md 한 곳에서만 관리함. CLAUDE.md는 AGENTS.md를 가리키기만 함.
